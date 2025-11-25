@@ -1,36 +1,46 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+## Parking Management Starter
 
-## Getting Started
+- Next.js App Router + TypeScript
+- Tailwind CSS + shadcn/ui
+- MongoDB API route with role-based access control
 
-First, run the development server:
+## Environment
+
+Create a `.env.local` file with:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+MONGODB_URI="mongodb+srv://<user>:<password>@cluster.mongodb.net/parking"
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Available scripts
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm run dev     # start local dev server
+npm run build   # build for production
+npm run lint    # run ESLint
+npm run seed:users  # hash + seed demo users into MongoDB
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+> The seeder loads `.env.local`, connects via `src/lib/mongodb.ts`, wipes any matching emails, hashes the passwords with bcrypt, and inserts the accounts defined in `src/lib/demo-users.ts`.
 
-## Learn More
+## Role-based demo
 
-To learn more about Next.js, take a look at the following resources:
+1. Visit `/login` and use one of the demo accounts:
+   - `admin@parking.dev` / `admin123` → role `admin`
+   - `super@parking.dev` / `super123` → role `super-admin`
+2. Middleware enforces:
+   - `/` requires `admin` or `super-admin`
+   - `/dashboard` requires `super-admin`
+3. Unauthenticated users are redirected to `/login?from=<path>`.
+4. Unauthorized traffic is redirected to `/unauthorized`.
+5. `/logout` clears the current session cookie.
+6. Passwords are stored hashed via `bcryptjs`; modify `scripts/seed-users.ts` or add your own user creation flow to manage real accounts.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## MongoDB API
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+`GET /api/parking` connects to MongoDB and returns the first 10 documents from the `parking_spaces` collection. Seed that collection in your database to see real data flow through the UI.
 
-## Deploy on Vercel
+`POST /api/vehicles` stores parking registrations submitted from the home page form. Each record includes creator info plus an auto-calculated expiration date based on the selected plan (monthly = +1 month, weekly = +7 days, 2 week = +14 days).
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+`POST /api/vehicles/[id]/renew` (triggered from the dashboard) renews expired vehicles by starting from the previously expired date, ensuring billing cycles chain correctly.
+# parking-management
