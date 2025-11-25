@@ -1,0 +1,140 @@
+import { notFound } from "next/navigation";
+import { ObjectId } from "mongodb";
+import Link from "next/link";
+import clientPromise from "@/lib/mongodb";
+import { Button } from "@/components/ui/button";
+import { RenewVehicleButton } from "@/components/renew-vehicle-button";
+
+type Params = {
+  id: string;
+};
+
+async function getVehicle(id: string) {
+  const client = await clientPromise;
+  const db = client.db();
+
+  let objectId: ObjectId | null = null;
+  try {
+    objectId = new ObjectId(id);
+  } catch {
+    objectId = null;
+  }
+
+  const query = objectId ? { _id: objectId } : { _id: id };
+  const vehicle = await db.collection("vehicles").findOne(query);
+
+  if (!vehicle) {
+    return null;
+  }
+
+  return {
+    ...vehicle,
+    _id: vehicle._id.toString(),
+  };
+}
+
+export default async function VehicleDetailPage({
+  params,
+}: {
+  params: Promise<Params>;
+}) {
+  const { id } = await params;
+  const vehicle = await getVehicle(id);
+
+  if (!vehicle) {
+    notFound();
+  }
+
+  const registerDate = new Date(vehicle.registerDate).toLocaleDateString();
+  const expiresAt = new Date(vehicle.expiresAt).toLocaleDateString();
+  const isExpired = new Date(vehicle.expiresAt) < new Date();
+
+  return (
+    <div className="bg-muted/20 px-4 py-6 sm:py-10">
+      <main className="mx-auto flex w-full max-w-4xl flex-col gap-5 rounded-2xl border bg-card p-5 shadow-sm sm:p-8">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="space-y-1">
+            <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">
+              Vehicle detail
+            </p>
+            <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+              {vehicle.name}
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Plate {vehicle.vehicleNumber} · Plan {vehicle.planType}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {isExpired ? (
+              <RenewVehicleButton vehicleId={vehicle._id} />
+            ) : null}
+            <Button asChild size="sm" variant="outline">
+              <Link href="/dashboard">Back to dashboard</Link>
+            </Button>
+          </div>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="rounded-xl border bg-background p-4 shadow-sm">
+            <p className="text-2xs uppercase text-muted-foreground">Contact</p>
+            <p className="text-sm font-semibold text-foreground">
+              {vehicle.phone}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Created by {vehicle.createdBy ?? "unknown"}
+            </p>
+          </div>
+          <div className="rounded-xl border bg-background p-4 shadow-sm">
+            <p className="text-2xs uppercase text-muted-foreground">
+              Billing
+            </p>
+            <p className="text-sm font-semibold text-foreground">
+              AED&nbsp;{vehicle.price.toFixed(2)}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {vehicle.planType} subscription
+            </p>
+          </div>
+        </div>
+
+        <div className="rounded-xl border bg-background p-5 shadow-sm">
+          <p className="text-2xs uppercase text-muted-foreground">
+            Timeline
+          </p>
+          <div className="mt-3 grid gap-4 text-sm text-muted-foreground sm:grid-cols-2">
+            <div>
+              <p className="text-xs uppercase tracking-wide text-foreground/70">
+                Registered
+              </p>
+              <p className="text-base font-semibold text-foreground">
+                {registerDate}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-wide text-foreground/70">
+                Expires
+              </p>
+              <p
+                className={`text-base font-semibold ${
+                  isExpired ? "text-red-500" : "text-foreground"
+                }`}
+              >
+                {expiresAt}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-xl border bg-background p-5 shadow-sm">
+          <p className="text-2xs uppercase text-muted-foreground">
+            Notes
+          </p>
+          <p className="mt-3 text-sm text-foreground">
+            {vehicle.notes?.length ? vehicle.notes : "No additional notes."}
+          </p>
+        </div>
+      </main>
+    </div>
+  );
+}
+
