@@ -43,4 +43,35 @@ npm run seed:users  # hash + seed demo users into MongoDB
 `POST /api/vehicles` stores parking registrations submitted from the home page form. Each record includes creator info plus an auto-calculated expiration date based on the selected plan (monthly = +1 month, weekly = +7 days, 2 week = +14 days).
 
 `POST /api/vehicles/[id]/renew` (triggered from the dashboard) renews expired vehicles by starting from the previously expired date, ensuring billing cycles chain correctly.
-# parking-management
+
+## Progressive Web App (PWA)
+
+The app is configured as a PWA and can be installed on all devices:
+
+### Features
+- **Installable**: Install the app on iOS, Android, Windows, macOS, and Linux
+- **Offline Support**: Service worker caches pages for offline access
+- **App Icons**: Parking-themed icons in multiple sizes (72x72 to 512x512)
+- **Manifest**: Complete PWA manifest with app name "Parking"
+- **Install Prompt**: Automatic install prompt appears after 3 seconds
+
+### Generating Icons
+Icons are generated from an SVG file. To regenerate icons:
+
+```bash
+node scripts/generate-icons.js
+```
+
+This requires `sharp` (already installed as dev dependency).
+
+### Installation
+- **Desktop**: Look for the install button in the browser address bar
+- **Mobile**: Use "Add to Home Screen" option in browser menu
+- **Automatic**: An install prompt will appear after visiting the site
+
+### Service Worker
+The service worker (`/sw.js`) provides:
+- Offline page caching
+- Network-first strategy for dynamic content
+- Automatic cache cleanup
+- Update notifications

@@ -57,8 +57,8 @@ export function HourlyParkingForm() {
             })),
           );
         }
-      } catch (error) {
-        console.error("Failed to load data:", error);
+      } catch {
+        // Failed to load data
         toast.error("Failed to load active vehicles");
       } finally {
         setIsLoading(false);
@@ -118,8 +118,8 @@ export function HourlyParkingForm() {
       if (res.ok) {
         setActiveVehicles((prev) => prev.filter((v) => v.id !== id));
       }
-    } catch (error) {
-      console.error("Failed to remove vehicle:", error);
+    } catch {
+      // Failed to remove vehicle
     }
   };
 
@@ -226,7 +226,7 @@ export function HourlyParkingForm() {
                 }
               }}
               placeholder="AA 12345"
-              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-base shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
           </div>
           <div>
@@ -249,7 +249,7 @@ export function HourlyParkingForm() {
                 }
               }}
               placeholder="5.00"
-              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-base shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
           </div>
         </div>

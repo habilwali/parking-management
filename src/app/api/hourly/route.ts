@@ -41,8 +41,7 @@ export async function GET(request: Request) {
         _id: entry._id.toString(),
       })),
     });
-  } catch (error) {
-    console.error("[hourly:GET]", error);
+  } catch {
     return NextResponse.json(
       { success: false, message: "Failed to load hourly sessions." },
       { status: 500 },
@@ -107,8 +106,7 @@ export async function POST(request: Request) {
       success: true,
       id: result.insertedId,
     });
-  } catch (error) {
-    console.error("[hourly:POST]", error);
+  } catch {
     return NextResponse.json(
       { success: false, message: "Failed to store hourly session." },
       { status: 500 },

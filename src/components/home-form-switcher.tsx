@@ -6,15 +6,18 @@ import { VehicleRegistrationForm } from "@/components/vehicle-registration-form"
 import { HourlyParkingForm } from "@/components/hourly-parking-form";
 import { NightParkingForm } from "@/components/night-parking-form";
 
-const tabs = [
-  { key: "monthly", label: "Monthly" },
-  { key: "hourly", label: "Hourly" },
-  { key: "night", label: "Night" },
-] as const;
+const tabs = ["monthly", "hourly", "night"] as const;
 
-type TabKey = (typeof tabs)[number]["key"];
+type TabKey = (typeof tabs)[number];
 
-export function HomeFormSwitcher() {
+type HomeFormSwitcherProps = {
+  labels: {
+    prompt: string;
+    tabs: Record<TabKey, string>;
+  };
+};
+
+export function HomeFormSwitcher({ labels }: HomeFormSwitcherProps) {
   const [activeTab, setActiveTab] = useState<TabKey | null>(null);
 
   return (
@@ -22,14 +25,14 @@ export function HomeFormSwitcher() {
       <div className="flex flex-wrap gap-3">
         {tabs.map((tab) => (
           <Button
-            key={tab.key}
-            variant={activeTab === tab.key ? "default" : "outline"}
+            key={tab}
+            variant={activeTab === tab ? "default" : "outline"}
             size="sm"
             onClick={() =>
-              setActiveTab((prev) => (prev === tab.key ? null : tab.key))
+              setActiveTab((prev) => (prev === tab ? null : tab))
             }
           >
-            {tab.label}
+            {labels.tabs[tab]}
           </Button>
         ))}
       </div>
@@ -41,9 +44,7 @@ export function HomeFormSwitcher() {
       ) : activeTab === "night" ? (
         <NightParkingForm />
       ) : (
-        <p className="text-sm text-muted-foreground">
-          Select a plan to open the relevant form.
-        </p>
+        <p className="text-sm text-muted-foreground">{labels.prompt}</p>
       )}
     </div>
   );

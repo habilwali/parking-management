@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import clientPromise from "@/lib/mongodb";
 import type { Db } from "mongodb";
 import { SessionActions } from "@/components/session-actions";
+import { getDictionary, resolveLanguage } from "@/lib/i18n";
 
 type ActiveHourlyVehicle = {
   _id: string;
@@ -102,6 +103,8 @@ function calculateBillableHours(elapsedMinutes: number): number {
 export default async function ParkingSessionsPage() {
   const cookieStore = await cookies();
   const role = cookieStore.get("role")?.value ?? "guest";
+  const language = resolveLanguage(cookieStore.get("lang")?.value);
+  const dict = getDictionary(language);
   const canManage = role === "super-admin";
 
   const client = await clientPromise;
@@ -121,66 +124,65 @@ export default async function ParkingSessionsPage() {
       <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 rounded-2xl border bg-card p-5 shadow-sm sm:p-8">
         <header className="space-y-1">
           <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">
-            Parking Sessions
+            {dict.sessions.tagline}
           </p>
           <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">
-            Hourly &amp; night bookings
+            {dict.sessions.title}
           </h1>
           <p className="text-sm text-muted-foreground">
-            Track ad-hoc parking sessions. Edit/delete actions are limited to
-            super admins.
+            {dict.sessions.description}
           </p>
         </header>
 
         {(hourlyTotal > 0 || nightTotal > 0) && (
           <div className="grid gap-3 sm:grid-cols-3">
             <div className="rounded-xl border bg-gradient-to-br from-amber-50 to-amber-100 p-3 text-center shadow-sm dark:from-amber-950/30 dark:to-amber-900/20">
-              <p className="text-2xs uppercase text-muted-foreground">Hourly total</p>
+              <p className="text-2xs uppercase text-muted-foreground">{dict.sessions.hourlyTotal}</p>
               <p className="text-lg font-semibold text-foreground sm:text-xl">
                 AED {hourlyTotal.toFixed(2)}
               </p>
               <p className="text-2xs text-muted-foreground">
-                {hourly.length} session{hourly.length !== 1 ? "s" : ""}
+                {hourly.length} {dict.sessions.sessions}{hourly.length !== 1 ? "s" : ""}
               </p>
             </div>
             <div className="rounded-xl border bg-gradient-to-br from-blue-50 to-blue-100 p-3 text-center shadow-sm dark:from-blue-950/30 dark:to-blue-900/20">
-              <p className="text-2xs uppercase text-muted-foreground">Night total</p>
+              <p className="text-2xs uppercase text-muted-foreground">{dict.sessions.nightTotal}</p>
               <p className="text-lg font-semibold text-foreground sm:text-xl">
                 AED {nightTotal.toFixed(2)}
               </p>
               <p className="text-2xs text-muted-foreground">
-                {night.length} session{night.length !== 1 ? "s" : ""}
+                {night.length} {dict.sessions.sessions}{night.length !== 1 ? "s" : ""}
               </p>
             </div>
             <div className="rounded-xl border bg-gradient-to-br from-emerald-50 to-emerald-100 p-3 text-center shadow-sm dark:from-emerald-950/30 dark:to-emerald-900/20">
-              <p className="text-2xs uppercase text-muted-foreground">Grand total</p>
+              <p className="text-2xs uppercase text-muted-foreground">{dict.sessions.grandTotal}</p>
               <p className="text-lg font-semibold text-foreground sm:text-xl">
                 AED {grandTotal.toFixed(2)}
               </p>
-              <p className="text-2xs text-muted-foreground">All sessions</p>
+              <p className="text-2xs text-muted-foreground">{dict.sessions.allSessions}</p>
             </div>
           </div>
         )}
 
         <section className="rounded-2xl border bg-background p-4 shadow-sm sm:p-6">
           <h2 className="text-lg font-semibold text-foreground">
-            Active hourly vehicles
+            {dict.sessions.activeHourlyVehicles}
           </h2>
           {activeVehicles.length === 0 ? (
             <p className="mt-4 text-sm text-muted-foreground">
-              No active hourly vehicles.
+              {dict.sessions.noActiveVehicles}
             </p>
           ) : (
             <div className="mt-4 overflow-x-auto">
               <table className="w-full min-w-[720px] text-left text-xs sm:text-sm">
                 <thead className="bg-muted/50 text-2xs uppercase tracking-wide text-muted-foreground">
                   <tr>
-                    <th className="px-3 py-2">Vehicle</th>
-                    <th className="px-3 py-2">Rate</th>
-                    <th className="px-3 py-2">Started</th>
-                    <th className="px-3 py-2">Elapsed</th>
-                    <th className="px-3 py-2">Estimated</th>
-                    <th className="px-3 py-2">Created by</th>
+                    <th className="px-3 py-2">{dict.sessions.tableHeaders.vehicle}</th>
+                    <th className="px-3 py-2">{dict.sessions.tableHeaders.rate}</th>
+                    <th className="px-3 py-2">{dict.sessions.tableHeaders.started}</th>
+                    <th className="px-3 py-2">{dict.sessions.tableHeaders.elapsed}</th>
+                    <th className="px-3 py-2">{dict.sessions.tableHeaders.estimated}</th>
+                    <th className="px-3 py-2">{dict.sessions.tableHeaders.createdBy}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -219,25 +221,25 @@ export default async function ParkingSessionsPage() {
 
         <section className="rounded-2xl border bg-background p-4 shadow-sm sm:p-6">
           <h2 className="text-lg font-semibold text-foreground">
-            Completed hourly sessions
+            {dict.sessions.completedHourlySessions}
           </h2>
           {hourly.length === 0 ? (
             <p className="mt-4 text-sm text-muted-foreground">
-              No hourly sessions recorded yet.
+              {dict.sessions.noHourlySessions}
             </p>
           ) : (
             <div className="mt-4 overflow-x-auto">
               <table className="w-full min-w-[720px] text-left text-xs sm:text-sm">
                 <thead className="bg-muted/50 text-2xs uppercase tracking-wide text-muted-foreground">
                   <tr>
-                    <th className="px-3 py-2">Vehicle</th>
-                    <th className="px-3 py-2">Rate</th>
-                    <th className="px-3 py-2">Started</th>
-                    <th className="px-3 py-2">Elapsed</th>
-                    <th className="px-3 py-2">Billed</th>
-                    <th className="px-3 py-2">Total (AED)</th>
-                    <th className="px-3 py-2">Created by</th>
-                    <th className="px-3 py-2">Actions</th>
+                    <th className="px-3 py-2">{dict.sessions.tableHeaders.vehicle}</th>
+                    <th className="px-3 py-2">{dict.sessions.tableHeaders.rate}</th>
+                    <th className="px-3 py-2">{dict.sessions.tableHeaders.started}</th>
+                    <th className="px-3 py-2">{dict.sessions.tableHeaders.elapsed}</th>
+                    <th className="px-3 py-2">{dict.sessions.tableHeaders.billed}</th>
+                    <th className="px-3 py-2">{dict.sessions.tableHeaders.total}</th>
+                    <th className="px-3 py-2">{dict.sessions.tableHeaders.createdBy}</th>
+                    <th className="px-3 py-2">{dict.sessions.tableHeaders.actions}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -282,22 +284,22 @@ export default async function ParkingSessionsPage() {
 
         <section className="rounded-2xl border bg-background p-4 shadow-sm sm:p-6">
           <h2 className="text-lg font-semibold text-foreground">
-            Night sessions
+            {dict.sessions.nightSessions}
           </h2>
           {night.length === 0 ? (
             <p className="mt-4 text-sm text-muted-foreground">
-              No night sessions recorded yet.
+              {dict.sessions.noNightSessions}
             </p>
           ) : (
             <div className="mt-4 overflow-x-auto">
               <table className="w-full min-w-[600px] text-left text-xs sm:text-sm">
                 <thead className="bg-muted/50 text-2xs uppercase tracking-wide text-muted-foreground">
                   <tr>
-                    <th className="px-3 py-2">Vehicle</th>
-                    <th className="px-3 py-2">Timestamp</th>
-                    <th className="px-3 py-2">Price (AED)</th>
-                    <th className="px-3 py-2">Created by</th>
-                    <th className="px-3 py-2">Actions</th>
+                    <th className="px-3 py-2">{dict.sessions.tableHeaders.vehicle}</th>
+                    <th className="px-3 py-2">{dict.sessions.tableHeaders.timestamp}</th>
+                    <th className="px-3 py-2">{dict.sessions.tableHeaders.price}</th>
+                    <th className="px-3 py-2">{dict.sessions.tableHeaders.createdBy}</th>
+                    <th className="px-3 py-2">{dict.sessions.tableHeaders.actions}</th>
                   </tr>
                 </thead>
                 <tbody>

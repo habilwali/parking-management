@@ -71,7 +71,7 @@ export function VehicleRegistrationForm() {
           onChange={handleChange}
           required
           placeholder="Jane Doe"
-          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="w-full rounded-md border border-input bg-background px-3 py-2 text-base shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
       </div>
 
@@ -89,7 +89,7 @@ export function VehicleRegistrationForm() {
           onChange={handleChange}
           required
           placeholder="KA 09 AB 1234"
-          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="w-full rounded-md border border-input bg-background px-3 py-2 text-base shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
       </div>
 
@@ -108,7 +108,7 @@ export function VehicleRegistrationForm() {
             onChange={handleChange}
             required
             placeholder="+1 555 010 0200"
-            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-base shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
         </div>
         <div className="space-y-1">
@@ -125,7 +125,7 @@ export function VehicleRegistrationForm() {
             value={formState.registerDate}
             onChange={handleChange}
             required
-            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-base shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
         </div>
       </div>
@@ -143,7 +143,7 @@ export function VehicleRegistrationForm() {
             name="planType"
             value={formState.planType}
             onChange={handleChange}
-            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-base shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <option value="monthly">Monthly</option>
             <option value="weekly">Weekly</option>
@@ -167,7 +167,7 @@ export function VehicleRegistrationForm() {
             onChange={handleChange}
             required
             placeholder="2500"
-            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-base shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
         </div>
       </div>
@@ -183,7 +183,7 @@ export function VehicleRegistrationForm() {
           onChange={handleChange}
           rows={3}
           placeholder="Any additional requirements or remarks..."
-          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="w-full rounded-md border border-input bg-background px-3 py-2 text-base shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
       </div>
 

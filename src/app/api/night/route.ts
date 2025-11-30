@@ -20,8 +20,7 @@ export async function GET() {
         _id: entry._id.toString(),
       })),
     });
-  } catch (error) {
-    console.error("[night:GET]", error);
+  } catch {
     return NextResponse.json(
       { success: false, message: "Failed to load night sessions." },
       { status: 500 },
@@ -70,8 +69,7 @@ export async function POST(request: Request) {
       success: true,
       id: result.insertedId,
     });
-  } catch (error) {
-    console.error("[night:POST]", error);
+  } catch {
     return NextResponse.json(
       { success: false, message: "Failed to store night session." },
       { status: 500 },

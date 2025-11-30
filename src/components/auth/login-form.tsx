@@ -17,16 +17,42 @@ export function LoginForm() {
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     startTransition(async () => {
-      const res = await fetch("/api/session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-      const data = await res.json();
-      setMessage(data.message ?? "Signed in.");
-      if (res.ok) {
-        router.push(redirectTo);
-        router.refresh();
+      try {
+        const res = await fetch("/api/session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        });
+
+        // Check if response has content before parsing
+        const contentType = res.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+          setMessage("Invalid response from server.");
+          return;
+        }
+
+        // Check if response has body
+        const text = await res.text();
+        if (!text) {
+          setMessage("Empty response from server.");
+          return;
+        }
+
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch {
+          setMessage("Failed to parse server response.");
+          return;
+        }
+
+        setMessage(data.message ?? "Signed in.");
+        if (res.ok) {
+          router.push(redirectTo);
+          router.refresh();
+        }
+      } catch {
+        setMessage("An error occurred. Please try again.");
       }
     });
   };
@@ -46,13 +72,9 @@ export function LoginForm() {
           required
           value={email}
           onChange={(event) => setEmail(event.target.value)}
-          placeholder="admin@parking.dev"
-          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          placeholder="Enter your email"
+          className="w-full rounded-md border border-input bg-background px-3 py-2 text-base shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
-        <p className="text-xs text-muted-foreground">
-          Demo accounts: admin@parking.dev / admin123, super@parking.dev /
-          super123.
-        </p>
       </div>
 
       <div className="space-y-1">
@@ -69,7 +91,7 @@ export function LoginForm() {
           value={password}
           onChange={(event) => setPassword(event.target.value)}
           placeholder="••••••••"
-          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="w-full rounded-md border border-input bg-background px-3 py-2 text-base shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
       </div>
 

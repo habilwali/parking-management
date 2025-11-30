@@ -86,8 +86,7 @@ export async function POST(
       registerDate: newRegisterDate,
       expiresAt: newExpiry,
     });
-  } catch (error) {
-    console.error("[vehicles:renew]", error);
+  } catch {
     return NextResponse.json(
       { success: false, message: "Failed to renew vehicle." },
       { status: 500 },

@@ -32,8 +32,7 @@ export async function GET() {
         createdBy: vehicle.createdBy,
       })),
     });
-  } catch (error) {
-    console.error("[active-hourly:GET]", error);
+  } catch {
     return NextResponse.json(
       { success: false, message: "Failed to load active vehicles." },
       { status: 500 },
@@ -91,8 +90,7 @@ export async function POST(request: Request) {
       success: true,
       id: result.insertedId.toString(),
     });
-  } catch (error) {
-    console.error("[active-hourly:POST]", error);
+  } catch {
     return NextResponse.json(
       { success: false, message: "Failed to add vehicle." },
       { status: 500 },
@@ -137,8 +135,7 @@ export async function DELETE(request: Request) {
     }
 
     return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("[active-hourly:DELETE]", error);
+  } catch {
     return NextResponse.json(
       { success: false, message: "Failed to remove vehicle." },
       { status: 500 },

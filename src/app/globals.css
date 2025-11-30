@@ -119,4 +119,99 @@
   body {
     @apply bg-background text-foreground;
   }
+  
+  /* Prevent zoom and side-by-side sliding on mobile */
+  html {
+    touch-action: pan-y;
+    -webkit-touch-callout: none;
+    overflow-x: hidden;
+    width: 100%;
+    position: relative;
+  }
+  
+  body {
+    touch-action: pan-y;
+    -webkit-overflow-scrolling: touch;
+    overflow-x: hidden;
+    width: 100%;
+    overscroll-behavior: none;
+    position: relative;
+  }
+  
+  /* Allow text selection in inputs and textareas */
+  input,
+  textarea,
+  [contenteditable] {
+    -webkit-user-select: text;
+    user-select: text;
+    touch-action: manipulation;
+  }
+  
+  /* Prevent double-tap zoom on buttons and links */
+  button,
+  a,
+  [role="button"] {
+    touch-action: manipulation;
+  }
+  
+  /* Prevent form inputs from zooming on focus (iOS Safari) */
+  input[type="text"],
+  input[type="email"],
+  input[type="number"],
+  input[type="tel"],
+  input[type="password"],
+  input[type="search"],
+  input[type="url"],
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"],
+  textarea,
+  select {
+    font-size: 16px !important;
+    min-font-size: 16px;
+    touch-action: manipulation;
+    -webkit-appearance: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* Ensure all form elements maintain 16px minimum */
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+  
+  /* Prevent form containers from zooming */
+  form,
+  [role="form"],
+  .rounded-2xl,
+  .rounded-xl,
+  .rounded-lg {
+    transform: scale(1);
+    transform-origin: top center;
+    will-change: auto;
+  }
+  
+  /* Prevent zoom on form focus */
+  form:focus-within,
+  [role="form"]:focus-within {
+    transform: scale(1) !important;
+  }
+  
+  /* Lock body scroll position when input is focused */
+  body.input-focused {
+    position: fixed;
+    width: 100%;
+    overflow: hidden;
+  }
+  
+  /* Prevent horizontal scrolling */
+  * {
+    max-width: 100%;
+  }
+  
+  /* Prevent pull-to-refresh on mobile */
+  body {
+    overscroll-behavior-y: contain;
+  }
 }

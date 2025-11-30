@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="240" fill="#1a1a1a"/>
+  
+  <!-- Parking sign shape -->
+  <rect x="156" y="120" width="200" height="280" rx="20" fill="#ffffff"/>
+  
+  <!-- Letter P -->
+  <path d="M 200 200 L 200 320 L 240 320 Q 280 320 280 280 L 280 240 Q 280 200 240 200 Z" fill="#1a1a1a"/>
+  <rect x="200" y="200" width="40" height="80" fill="#ffffff"/>
+  
+  <!-- Parking lines -->
+  <line x1="180" y1="360" x2="180" y2="380" stroke="#1a1a1a" stroke-width="8" stroke-linecap="round"/>
+  <line x1="220" y1="360" x2="220" y2="380" stroke="#1a1a1a" stroke-width="8" stroke-linecap="round"/>
+  <line x1="260" y1="360" x2="260" y2="380" stroke="#1a1a1a" stroke-width="8" stroke-linecap="round"/>
+  <line x1="300" y1="360" x2="300" y2="380" stroke="#1a1a1a" stroke-width="8" stroke-linecap="round"/>
+</svg>
+

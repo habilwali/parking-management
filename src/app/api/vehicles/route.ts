@@ -81,8 +81,7 @@ export async function POST(request: Request) {
       message: "Vehicle registered successfully.",
       id: result.insertedId,
     });
-  } catch (error) {
-    console.error("[vehicles:POST]", error);
+  } catch {
     return NextResponse.json(
       { success: false, message: "Failed to register vehicle." },
       { status: 500 },

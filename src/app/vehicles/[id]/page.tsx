@@ -1,9 +1,11 @@
 import { notFound } from "next/navigation";
 import { ObjectId } from "mongodb";
+import { cookies } from "next/headers";
 import Link from "next/link";
 import clientPromise from "@/lib/mongodb";
 import { Button } from "@/components/ui/button";
 import { RenewVehicleButton } from "@/components/renew-vehicle-button";
+import { getDictionary, resolveLanguage } from "@/lib/i18n";
 
 type Params = {
   id: string;
@@ -45,6 +47,10 @@ export default async function VehicleDetailPage({
     notFound();
   }
 
+  const cookieStore = await cookies();
+  const language = resolveLanguage(cookieStore.get("lang")?.value);
+  const dict = getDictionary(language);
+
   const registerDate = new Date(vehicle.registerDate).toLocaleDateString();
   const expiresAt = new Date(vehicle.expiresAt).toLocaleDateString();
   const isExpired = new Date(vehicle.expiresAt) < new Date();
@@ -55,13 +61,13 @@ export default async function VehicleDetailPage({
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-1">
             <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">
-              Vehicle detail
+              {dict.vehicleDetail.tagline}
             </p>
             <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
               {vehicle.name}
             </h1>
             <p className="text-sm text-muted-foreground">
-              Plate {vehicle.vehicleNumber} · Plan {vehicle.planType}
+              {dict.vehicleDetail.plate} {vehicle.vehicleNumber} · {dict.vehicleDetail.plan} {vehicle.planType}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -69,42 +75,42 @@ export default async function VehicleDetailPage({
               <RenewVehicleButton vehicleId={vehicle._id} />
             ) : null}
             <Button asChild size="sm" variant="outline">
-              <Link href="/dashboard">Back to dashboard</Link>
+              <Link href="/dashboard">{dict.vehicleDetail.backToDashboard}</Link>
             </Button>
           </div>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="rounded-xl border bg-background p-4 shadow-sm">
-            <p className="text-2xs uppercase text-muted-foreground">Contact</p>
+            <p className="text-2xs uppercase text-muted-foreground">{dict.vehicleDetail.contact}</p>
             <p className="text-sm font-semibold text-foreground">
               {vehicle.phone}
             </p>
             <p className="text-xs text-muted-foreground">
-              Created by {vehicle.createdBy ?? "unknown"}
+              {dict.vehicleDetail.createdBy} {vehicle.createdBy ?? "unknown"}
             </p>
           </div>
           <div className="rounded-xl border bg-background p-4 shadow-sm">
             <p className="text-2xs uppercase text-muted-foreground">
-              Billing
+              {dict.vehicleDetail.billing}
             </p>
             <p className="text-sm font-semibold text-foreground">
               AED&nbsp;{vehicle.price.toFixed(2)}
             </p>
             <p className="text-xs text-muted-foreground">
-              {vehicle.planType} subscription
+              {vehicle.planType} {dict.vehicleDetail.subscription}
             </p>
           </div>
         </div>
 
         <div className="rounded-xl border bg-background p-5 shadow-sm">
           <p className="text-2xs uppercase text-muted-foreground">
-            Timeline
+            {dict.vehicleDetail.timeline}
           </p>
           <div className="mt-3 grid gap-4 text-sm text-muted-foreground sm:grid-cols-2">
             <div>
               <p className="text-xs uppercase tracking-wide text-foreground/70">
-                Registered
+                {dict.vehicleDetail.registered}
               </p>
               <p className="text-base font-semibold text-foreground">
                 {registerDate}
@@ -112,7 +118,7 @@ export default async function VehicleDetailPage({
             </div>
             <div>
               <p className="text-xs uppercase tracking-wide text-foreground/70">
-                Expires
+                {dict.vehicleDetail.expires}
               </p>
               <p
                 className={`text-base font-semibold ${
@@ -127,10 +133,10 @@ export default async function VehicleDetailPage({
 
         <div className="rounded-xl border bg-background p-5 shadow-sm">
           <p className="text-2xs uppercase text-muted-foreground">
-            Notes
+            {dict.vehicleDetail.notes}
           </p>
           <p className="mt-3 text-sm text-foreground">
-            {vehicle.notes?.length ? vehicle.notes : "No additional notes."}
+            {vehicle.notes?.length ? vehicle.notes : dict.vehicleDetail.noNotes}
           </p>
         </div>
       </main>

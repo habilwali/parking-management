@@ -52,8 +52,7 @@ export async function PATCH(
       .updateOne(buildQuery(id), { $set: updates });
 
     return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("[night:PATCH]", error);
+  } catch {
     return NextResponse.json(
       { success: false, message: "Failed to update session." },
       { status: 500 },
@@ -81,8 +80,7 @@ export async function DELETE(
     await client.db().collection("night_sessions").deleteOne(buildQuery(id));
 
     return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("[night:DELETE]", error);
+  } catch {
     return NextResponse.json(
       { success: false, message: "Failed to delete session." },
       { status: 500 },

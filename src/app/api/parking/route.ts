@@ -16,8 +16,7 @@ export async function GET() {
       count: spaces.length,
       spaces,
     });
-  } catch (error) {
-    console.error("[parking-api]", error);
+  } catch {
     return NextResponse.json(
       { success: false, message: "Failed to fetch parking spaces." },
       { status: 500 },
