@@ -19,7 +19,7 @@ export async function GET(request: Request) {
           {
             $group: {
               _id: null,
-              total: { $sum: "$totalPrice" },
+              total: { $sum: { $ifNull: ["$paidAmount", 0] } },
             },
           },
         ])
@@ -72,6 +72,7 @@ export async function POST(request: Request) {
     billableHours,
     totalPrice,
     bufferApplied,
+    paid = false,
   } = payload;
 
   if (!vehicleNumber || !startTime || !totalPrice) {
@@ -93,6 +94,8 @@ export async function POST(request: Request) {
       billableHours,
       totalPrice,
       bufferApplied,
+      paid: paid === true,
+      paidAmount: paid === true ? totalPrice : 0,
       createdBy,
       createdAt: new Date(),
     };

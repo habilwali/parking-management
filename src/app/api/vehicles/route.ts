@@ -11,6 +11,7 @@ type VehiclePayload = {
   planType?: PlanType;
   price?: number | string;
   notes?: string;
+  paid?: boolean;
 };
 
 export async function POST(request: Request) {
@@ -23,6 +24,7 @@ export async function POST(request: Request) {
     planType = "monthly",
     price,
     notes,
+    paid = false,
   } = payload;
 
   if (!name || !vehicleNumber || !phone || !registerDate || price === undefined || price === null || price === "") {
@@ -68,6 +70,8 @@ export async function POST(request: Request) {
       price: numericPrice,
       expiresAt,
       notes: notes ?? "",
+      paid: paid === true,
+      paidAmount: paid === true ? numericPrice : 0,
       createdBy,
       createdByRole: role,
       createdAt: new Date(),

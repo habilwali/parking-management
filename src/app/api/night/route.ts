@@ -41,7 +41,7 @@ export async function POST(request: Request) {
   }
 
   const payload = await request.json();
-  const { vehicleNumber, timestamp, price } = payload;
+  const { vehicleNumber, timestamp, price, paid = false } = payload;
 
   if (!vehicleNumber || !timestamp || typeof price !== "number") {
     return NextResponse.json(
@@ -56,6 +56,8 @@ export async function POST(request: Request) {
       vehicleNumber,
       timestamp: new Date(timestamp),
       price,
+      paid: paid === true,
+      paidAmount: paid === true ? price : 0,
       createdBy,
       createdAt: new Date(),
     };

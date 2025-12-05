@@ -30,6 +30,11 @@ export function PreventZoom() {
         target.tagName === "SELECT" ||
         target.isContentEditable
       ) {
+        // Check if it's a mobile/touch device or small screen
+        const isMobile = window.innerWidth < 768 || 
+                        'ontouchstart' in window || 
+                        navigator.maxTouchPoints > 0;
+        
         // Ensure font size is at least 16px to prevent iOS auto-zoom
         const computedStyle = window.getComputedStyle(target);
         const fontSize = parseFloat(computedStyle.fontSize);
@@ -37,34 +42,9 @@ export function PreventZoom() {
           target.style.fontSize = "16px";
         }
         
-        // Lock viewport immediately
-        const viewport = document.querySelector('meta[name="viewport"]');
-        if (viewport) {
-          viewport.setAttribute(
-            "content",
-            "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no",
-          );
-        }
-        
-        // Prevent form container zoom
-        const formContainer = target.closest("form") || 
-                             target.closest(".rounded-2xl") || 
-                             target.closest(".rounded-xl") ||
-                             target.closest(".rounded-lg");
-        if (formContainer) {
-          (formContainer as HTMLElement).style.transform = "scale(1)";
-          (formContainer as HTMLElement).style.transformOrigin = "top center";
-        }
-        
-        // Store original scroll position
-        const scrollY = window.scrollY;
-        document.body.style.position = "fixed";
-        document.body.style.top = `-${scrollY}px`;
-        document.body.style.width = "100%";
-        document.body.classList.add("input-focused");
-        
-        // Prevent any zoom attempts
-        const preventZoom = () => {
+        // Lock viewport immediately (only on mobile)
+        if (isMobile) {
+          const viewport = document.querySelector('meta[name="viewport"]');
           if (viewport) {
             viewport.setAttribute(
               "content",
@@ -72,27 +52,54 @@ export function PreventZoom() {
             );
           }
           
-          // Keep form container at scale 1
+          // Prevent form container zoom
+          const formContainer = target.closest("form") || 
+                               target.closest(".rounded-2xl") || 
+                               target.closest(".rounded-xl") ||
+                               target.closest(".rounded-lg");
           if (formContainer) {
             (formContainer as HTMLElement).style.transform = "scale(1)";
+            (formContainer as HTMLElement).style.transformOrigin = "top center";
           }
           
-          // Prevent body scroll
+          // Store original scroll position
+          const scrollY = window.scrollY;
           document.body.style.position = "fixed";
           document.body.style.top = `-${scrollY}px`;
           document.body.style.width = "100%";
-        };
-        
-        // Monitor and prevent zoom while focused
-        const intervalId = setInterval(preventZoom, 50);
-        
-        // Store interval ID and scroll position on element for cleanup
-        const elementData = target as HTMLElement & { 
-          __zoomPreventInterval?: NodeJS.Timeout;
-          __scrollY?: number;
-        };
-        elementData.__zoomPreventInterval = intervalId;
-        elementData.__scrollY = scrollY;
+          document.body.classList.add("input-focused");
+          
+          // Prevent any zoom attempts
+          const preventZoom = () => {
+            if (viewport) {
+              viewport.setAttribute(
+                "content",
+                "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no",
+              );
+            }
+            
+            // Keep form container at scale 1
+            if (formContainer) {
+              (formContainer as HTMLElement).style.transform = "scale(1)";
+            }
+            
+            // Prevent body scroll
+            document.body.style.position = "fixed";
+            document.body.style.top = `-${scrollY}px`;
+            document.body.style.width = "100%";
+          };
+          
+          // Monitor and prevent zoom while focused
+          const intervalId = setInterval(preventZoom, 50);
+          
+          // Store interval ID and scroll position on element for cleanup
+          const elementData = target as HTMLElement & { 
+            __zoomPreventInterval?: NodeJS.Timeout;
+            __scrollY?: number;
+          };
+          elementData.__zoomPreventInterval = intervalId;
+          elementData.__scrollY = scrollY;
+        }
       }
     };
 
@@ -143,36 +150,50 @@ export function PreventZoom() {
         __scrollY?: number;
       };
       
-      // Clear interval if it exists
-      if (target.__zoomPreventInterval) {
-        clearInterval(target.__zoomPreventInterval);
-        delete target.__zoomPreventInterval;
-      }
+      // Check if it's a mobile/touch device or small screen
+      const isMobile = window.innerWidth < 768 || 
+                      'ontouchstart' in window || 
+                      navigator.maxTouchPoints > 0;
       
-      // Restore body scroll
-      const scrollY = target.__scrollY ?? 0;
-      document.body.style.position = "";
-      document.body.style.top = "";
-      document.body.style.width = "";
-      document.body.classList.remove("input-focused");
-      window.scrollTo(0, scrollY);
-      
-      // Reset form container transform
-      const formContainer = target.closest("form") || 
-                           target.closest(".rounded-2xl") || 
-                           target.closest(".rounded-xl") ||
-                           target.closest(".rounded-lg");
-      if (formContainer) {
-        (formContainer as HTMLElement).style.transform = "";
-        (formContainer as HTMLElement).style.transformOrigin = "";
-      }
-      
-      const viewport = document.querySelector('meta[name="viewport"]');
-      if (viewport) {
-        viewport.setAttribute(
-          "content",
-          "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no",
-        );
+      // Only restore scroll on mobile devices
+      if (isMobile) {
+        // Clear interval if it exists
+        if (target.__zoomPreventInterval) {
+          clearInterval(target.__zoomPreventInterval);
+          delete target.__zoomPreventInterval;
+        }
+        
+        // Restore body scroll
+        const scrollY = target.__scrollY ?? 0;
+        document.body.style.position = "";
+        document.body.style.top = "";
+        document.body.style.width = "";
+        document.body.classList.remove("input-focused");
+        window.scrollTo(0, scrollY);
+        
+        // Reset form container transform
+        const formContainer = target.closest("form") || 
+                             target.closest(".rounded-2xl") || 
+                             target.closest(".rounded-xl") ||
+                             target.closest(".rounded-lg");
+        if (formContainer) {
+          (formContainer as HTMLElement).style.transform = "";
+          (formContainer as HTMLElement).style.transformOrigin = "";
+        }
+        
+        const viewport = document.querySelector('meta[name="viewport"]');
+        if (viewport) {
+          viewport.setAttribute(
+            "content",
+            "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no",
+          );
+        }
+      } else {
+        // On desktop, just clear interval if it exists (shouldn't, but just in case)
+        if (target.__zoomPreventInterval) {
+          clearInterval(target.__zoomPreventInterval);
+          delete target.__zoomPreventInterval;
+        }
       }
     };
 

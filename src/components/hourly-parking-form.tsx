@@ -25,6 +25,7 @@ export function HourlyParkingForm() {
   const [totalAmount, setTotalAmount] = useState(0);
   const [showStopDialog, setShowStopDialog] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState<ActiveVehicle | null>(null);
+  const [isPaid, setIsPaid] = useState(false);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -140,6 +141,7 @@ export function HourlyParkingForm() {
 
   const handleStopClick = (vehicle: ActiveVehicle) => {
     setSelectedVehicle(vehicle);
+    setIsPaid(false);
     setShowStopDialog(true);
   };
 
@@ -167,6 +169,7 @@ export function HourlyParkingForm() {
           billableHours: calc.billableHours,
           totalPrice: calc.totalPrice,
           bufferApplied: calc.bufferApplied,
+          paid: isPaid,
         }),
       });
       const data = await res.json();
@@ -174,10 +177,18 @@ export function HourlyParkingForm() {
         throw new Error(data.message ?? "Failed to save session.");
       }
       toast.success(
-        `Recorded ${vehicle.vehicleNumber} - AED ${calc.totalPrice.toFixed(2)}`,
+        `Recorded ${vehicle.vehicleNumber} - AED ${calc.totalPrice.toFixed(2)}${isPaid ? " (Paid)" : " (Unpaid)"}`,
       );
       await removeVehicle(vehicle.id);
-      setTotalAmount((prev) => prev + calc.totalPrice);
+      if (isPaid) {
+        setTotalAmount((prev) => prev + calc.totalPrice);
+      }
+      // Refresh total from server to get accurate paid total
+      const totalRes = await fetch("/api/hourly?total=true");
+      const totalData = await totalRes.json();
+      if (totalRes.ok && totalData.total !== undefined) {
+        setTotalAmount(totalData.total);
+      }
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Failed to save session.",
@@ -335,7 +346,33 @@ export function HourlyParkingForm() {
           open={showStopDialog}
           onOpenChange={setShowStopDialog}
           title="Stop Timer"
-          description={`Do you want to stop the timer for vehicle ${selectedVehicle.vehicleNumber}? The session will be recorded and saved.`}
+          description={
+            <div className="space-y-3">
+              <p>
+                Do you want to stop the timer for vehicle {selectedVehicle.vehicleNumber}? The session will be recorded and saved.
+              </p>
+              <div className="flex items-center space-x-2 rounded-md border border-input bg-background p-3">
+                <input
+                  id="hourly-paid"
+                  type="checkbox"
+                  checked={isPaid}
+                  onChange={(e) => setIsPaid(e.target.checked)}
+                  className="h-4 w-4 rounded border-input text-primary focus:ring-2 focus:ring-ring"
+                />
+                <label
+                  htmlFor="hourly-paid"
+                  className="text-sm font-medium text-foreground cursor-pointer flex-1"
+                >
+                  Payment received
+                </label>
+                <span className="text-xs text-muted-foreground">
+                  {isPaid
+                    ? "✓ Included in totals"
+                    : "⚠ Not in totals"}
+                </span>
+              </div>
+            </div>
+          }
           confirmText="Stop Timer"
           cancelText="Cancel"
           onConfirm={stopTimer}

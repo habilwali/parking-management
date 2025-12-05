@@ -4,8 +4,49 @@ import clientPromise from "@/lib/mongodb";
 import type { Db } from "mongodb";
 import { Button } from "@/components/ui/button";
 import { RenewVehicleButton } from "@/components/renew-vehicle-button";
+import { VehiclePaymentButton } from "@/components/vehicle-payment-button";
 import { Pagination } from "@/components/pagination";
 import { getDictionary, resolveLanguage } from "@/lib/i18n";
+
+function PaymentStatusCell({
+  totalAmount,
+  paidAmount,
+  paid,
+}: {
+  totalAmount: number;
+  paidAmount: number;
+  paid: boolean;
+}) {
+  const remaining = totalAmount - paidAmount;
+  const isFullyPaid = paid && remaining <= 0;
+
+  if (isFullyPaid) {
+    return (
+      <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800 dark:bg-green-900/30 dark:text-green-400">
+        ✓ Paid
+      </span>
+    );
+  }
+
+  if (paidAmount > 0) {
+    return (
+      <div className="space-y-1">
+        <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-1 text-xs font-medium text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
+          Partial
+        </span>
+        <p className="text-xs text-muted-foreground">
+          {paidAmount.toFixed(2)} / {totalAmount.toFixed(2)}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-1 text-xs font-medium text-red-800 dark:bg-red-900/30 dark:text-red-400">
+      Unpaid
+    </span>
+  );
+}
 
 type VehicleRecord = {
   _id: string;
@@ -16,6 +57,8 @@ type VehicleRecord = {
   expiresAt: string | Date;
   planType: string;
   price: number;
+  paid?: boolean;
+  paidAmount?: number;
   notes?: string;
   createdBy?: string;
   renewedBy?: string;
@@ -69,6 +112,8 @@ async function getVehicles(
       expiresAt: vehicle.expiresAt,
       planType: vehicle.planType,
       price: vehicle.price,
+      paid: vehicle.paid ?? false,
+      paidAmount: vehicle.paidAmount ?? 0,
       notes: vehicle.notes,
       createdBy: vehicle.createdBy,
       renewedBy: vehicle.renewedBy,
@@ -90,7 +135,7 @@ async function getMonthlyStats(db: Db, monthStart: Date, monthEnd: Date) {
     {
       $group: {
         _id: "$planType",
-        totalAmount: { $sum: "$price" },
+        totalAmount: { $sum: { $ifNull: ["$paidAmount", 0] } },
         count: { $sum: 1 },
       },
     },
@@ -138,7 +183,7 @@ async function getHourlySummary(
     {
       $group: {
         _id: null,
-        totalAmount: { $sum: "$totalPrice" },
+        totalAmount: { $sum: { $ifNull: ["$paidAmount", 0] } },
         count: { $sum: 1 },
       },
     },
@@ -169,7 +214,7 @@ async function getNightSummary(
     {
       $group: {
         _id: null,
-        totalAmount: { $sum: "$price" },
+        totalAmount: { $sum: { $ifNull: ["$paidAmount", 0] } },
         count: { $sum: 1 },
       },
     },
@@ -332,15 +377,15 @@ export default async function Dashboard({
         </form>
 
         <div className="grid gap-3 text-center sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-xl border border-amber-100 bg-gradient-to-br from-amber-50 to-amber-100/40 p-4 shadow-sm sm:p-5">
-            <p className="text-2xs uppercase text-amber-700">
+          <div className="rounded-xl border border-amber-200 bg-gradient-to-br from-amber-50 to-amber-100/40 p-4 shadow-sm dark:border-amber-900/50 dark:from-amber-950/50 dark:to-amber-900/30 sm:p-5">
+            <p className="text-2xs uppercase text-amber-700 dark:text-amber-400">
               {dict.dashboard.allParkingRevenue}
             </p>
-            <p className="mt-1 text-xl font-semibold text-amber-900 sm:text-2xl">
+            <p className="mt-1 text-xl font-semibold text-amber-900 dark:text-amber-300 sm:text-2xl">
               AED&nbsp;
               {combinedTotal.toFixed(2)}
             </p>
-            <p className="text-2xs text-amber-700/80 sm:text-xs">
+            <p className="text-2xs text-amber-700/80 dark:text-amber-400/70 sm:text-xs">
               {monthStart.toLocaleString("default", {
                 month: "long",
               })}{" "}
@@ -352,19 +397,19 @@ export default async function Dashboard({
               key: "monthly",
               label: dict.dashboard.monthly,
               classes:
-                "border-emerald-100 bg-gradient-to-br from-emerald-50 to-emerald-100/50 text-emerald-900",
+                "border-emerald-200 bg-gradient-to-br from-emerald-50 to-emerald-100/50 text-emerald-900 dark:border-emerald-900/50 dark:from-emerald-950/50 dark:to-emerald-900/30 dark:text-emerald-300",
             },
             {
               key: "weekly",
               label: dict.dashboard.weekly,
               classes:
-                "border-sky-100 bg-gradient-to-br from-sky-50 to-sky-100/50 text-sky-900",
+                "border-sky-200 bg-gradient-to-br from-sky-50 to-sky-100/50 text-sky-900 dark:border-sky-900/50 dark:from-sky-950/50 dark:to-sky-900/30 dark:text-sky-300",
             },
             {
               key: "bi-weekly",
               label: dict.dashboard.twoWeek,
               classes:
-                "border-purple-100 bg-gradient-to-br from-purple-50 to-purple-100/50 text-purple-900",
+                "border-purple-200 bg-gradient-to-br from-purple-50 to-purple-100/50 text-purple-900 dark:border-purple-900/50 dark:from-purple-950/50 dark:to-purple-900/30 dark:text-purple-300",
             },
           ].map((plan) => {
             const planData = totals[plan.key] ?? { amount: 0, count: 0 };
@@ -384,23 +429,23 @@ export default async function Dashboard({
               </div>
             );
           })}
-          <div className="rounded-xl border border-rose-100 bg-gradient-to-br from-rose-50 to-rose-100/50 p-4 text-rose-900 shadow-sm sm:p-5">
-            <p className="text-2xs uppercase opacity-80">{dict.dashboard.hourlySessions}</p>
+          <div className="rounded-xl border border-rose-200 bg-gradient-to-br from-rose-50 to-rose-100/50 p-4 text-rose-900 shadow-sm dark:border-rose-900/50 dark:from-rose-950/50 dark:to-rose-900/30 dark:text-rose-300 sm:p-5">
+            <p className="text-2xs uppercase opacity-80 dark:opacity-90">{dict.dashboard.hourlySessions}</p>
             <p className="mt-1 text-xl font-semibold sm:text-2xl">
               AED&nbsp;
               {hourlySummary.totalAmount.toFixed(2)}
             </p>
-            <p className="text-2xs opacity-80 sm:text-xs">
+            <p className="text-2xs opacity-80 dark:opacity-70 sm:text-xs">
               {hourlySummary.count} {dict.dashboard.activeSessionsLogged}
             </p>
           </div>
-          <div className="rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 to-slate-100/60 p-4 text-slate-900 shadow-sm sm:p-5">
-            <p className="text-2xs uppercase opacity-80">{dict.dashboard.nightParking}</p>
+          <div className="rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 to-slate-100/60 p-4 text-slate-900 shadow-sm dark:border-slate-800 dark:from-slate-900/50 dark:to-slate-800/30 dark:text-slate-300 sm:p-5">
+            <p className="text-2xs uppercase opacity-80 dark:opacity-90">{dict.dashboard.nightParking}</p>
             <p className="mt-1 text-xl font-semibold sm:text-2xl">
               AED&nbsp;
               {nightSummary.totalAmount.toFixed(2)}
             </p>
-            <p className="text-2xs opacity-80 sm:text-xs">
+            <p className="text-2xs opacity-80 dark:opacity-70 sm:text-xs">
               {nightSummary.count} {dict.dashboard.staysRecorded}
             </p>
           </div>
@@ -419,6 +464,7 @@ export default async function Dashboard({
                   <th className="px-3 py-3">{dict.dashboard.vehicle}</th>
                   <th className="px-3 py-3">{dict.dashboard.plan}</th>
                   <th className="px-3 py-3">{dict.dashboard.price}</th>
+                  <th className="px-3 py-3">Payment</th>
                   <th className="px-3 py-3">{dict.dashboard.registered}</th>
                   <th className="px-3 py-3">{dict.dashboard.expires}</th>
                   <th className="px-3 py-3">{dict.dashboard.status}</th>
@@ -440,6 +486,20 @@ export default async function Dashboard({
                     <td className="px-3 py-3 text-muted-foreground">
                       AED&nbsp;
                       {vehicle.price.toFixed(2)}
+                    </td>
+                    <td className="px-3 py-3">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <PaymentStatusCell
+                          totalAmount={vehicle.price}
+                          paidAmount={vehicle.paidAmount ?? 0}
+                          paid={vehicle.paid ?? false}
+                        />
+                        <VehiclePaymentButton
+                          vehicleId={vehicle._id}
+                          totalAmount={vehicle.price}
+                          paidAmount={vehicle.paidAmount ?? 0}
+                        />
+                      </div>
                     </td>
                     <td className="px-3 py-3 text-muted-foreground">
                       {new Date(vehicle.registerDate).toLocaleDateString()}

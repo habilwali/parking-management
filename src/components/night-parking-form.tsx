@@ -11,6 +11,7 @@ export function NightParkingForm() {
   const [price, setPrice] = useState(NIGHT_RATE);
   const [timestamp] = useState(() => new Date());
   const [isSaving, setIsSaving] = useState(false);
+  const [paid, setPaid] = useState(false);
 
   const recordNightStay = async () => {
     if (!vehicleNumber.trim()) {
@@ -26,15 +27,17 @@ export function NightParkingForm() {
           vehicleNumber: vehicleNumber.trim(),
           timestamp,
           price,
+          paid,
         }),
       });
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data.message ?? "Failed to record night stay.");
       }
-      toast.success("Night parking recorded successfully");
+      toast.success(`Night parking recorded successfully${paid ? " (Paid)" : " (Unpaid)"}`);
       setVehicleNumber("");
       setPrice(NIGHT_RATE);
+      setPaid(false);
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Failed to record night stay.",
@@ -92,6 +95,27 @@ export function NightParkingForm() {
             className="w-full rounded-md border border-input bg-background px-3 py-2 text-base shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
         </div>
+      </div>
+
+      <div className="flex items-center space-x-2 rounded-md border border-input bg-background p-3">
+        <input
+          id="night-paid"
+          type="checkbox"
+          checked={paid}
+          onChange={(e) => setPaid(e.target.checked)}
+          className="h-4 w-4 rounded border-input text-primary focus:ring-2 focus:ring-ring"
+        />
+        <label
+          htmlFor="night-paid"
+          className="text-sm font-medium text-foreground cursor-pointer flex-1"
+        >
+          Payment received
+        </label>
+        <span className="text-xs text-muted-foreground">
+          {paid
+            ? "✓ Will be included in totals"
+            : "⚠ Not included in totals until paid"}
+        </span>
       </div>
 
       <Button

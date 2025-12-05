@@ -10,6 +10,8 @@ import { InputDialog } from "@/components/input-dialog";
 type SessionActionsProps = {
   sessionType: "hourly" | "night";
   sessionId: string;
+  totalAmount: number;
+  paidAmount: number;
   canManage: boolean;
 };
 
@@ -23,6 +25,7 @@ export function SessionActions({
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
 
+  // Only super-admin can see Edit and Delete buttons
   if (!canManage) {
     return null;
   }
@@ -92,22 +95,22 @@ export function SessionActions({
 
   return (
     <>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex items-center gap-1.5 flex-wrap justify-end">
         <Button
-          size="xs"
+          size="sm"
           variant="outline"
           onClick={() => setShowEditDialog(true)}
           disabled={isPending}
-          className="text-xs"
+          className="h-7 px-3 text-xs font-medium"
         >
           Edit
         </Button>
         <Button
-          size="xs"
+          size="sm"
           variant="destructive"
           onClick={() => setShowDeleteDialog(true)}
           disabled={isPending}
-          className="text-xs"
+          className="h-7 px-3 text-xs font-medium"
         >
           Delete
         </Button>

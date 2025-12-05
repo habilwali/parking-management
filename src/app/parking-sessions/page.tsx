@@ -1,8 +1,50 @@
 import { cookies } from "next/headers";
+import Link from "next/link";
 import clientPromise from "@/lib/mongodb";
 import type { Db } from "mongodb";
-import { SessionActions } from "@/components/session-actions";
+import { Button } from "@/components/ui/button";
+import { PaymentStatusWithButton } from "@/components/payment-status-with-button";
 import { getDictionary, resolveLanguage } from "@/lib/i18n";
+
+function PaymentStatusCell({
+  totalAmount,
+  paidAmount,
+  paid,
+}: {
+  totalAmount: number;
+  paidAmount: number;
+  paid: boolean;
+}) {
+  const remaining = totalAmount - paidAmount;
+  const isFullyPaid = paid && remaining <= 0;
+
+  if (isFullyPaid) {
+    return (
+      <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800 dark:bg-green-900/30 dark:text-green-400">
+        ✓ Paid
+      </span>
+    );
+  }
+
+  if (paidAmount > 0) {
+    return (
+      <div className="space-y-1">
+        <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-1 text-xs font-medium text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
+          Partial
+        </span>
+        <p className="text-xs text-muted-foreground">
+          Paid: {paidAmount.toFixed(2)} / {totalAmount.toFixed(2)}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-1 text-xs font-medium text-red-800 dark:bg-red-900/30 dark:text-red-400">
+      Unpaid
+    </span>
+  );
+}
 
 type ActiveHourlyVehicle = {
   _id: string;
@@ -22,6 +64,8 @@ type HourlySession = {
   billableHours: number;
   totalPrice: number;
   bufferApplied?: boolean;
+  paid?: boolean;
+  paidAmount?: number;
   createdBy?: string;
 };
 
@@ -30,6 +74,8 @@ type NightSession = {
   vehicleNumber: string;
   timestamp: Date | string;
   price: number;
+  paid?: boolean;
+  paidAmount?: number;
   createdBy?: string;
 };
 
@@ -49,12 +95,21 @@ async function getActiveHourlyVehicles(db: Db): Promise<ActiveHourlyVehicle[]> {
   }));
 }
 
-async function getHourlySessions(db: Db): Promise<HourlySession[]> {
+async function getTodayHourlySessions(db: Db): Promise<HourlySession[]> {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
   const entries = await db
     .collection("hourly_sessions")
-    .find({})
+    .find({
+      createdAt: {
+        $gte: today,
+        $lt: tomorrow,
+      },
+    })
     .sort({ createdAt: -1 })
-    .limit(100)
     .toArray();
 
   return entries.map((entry) => ({
@@ -67,16 +122,27 @@ async function getHourlySessions(db: Db): Promise<HourlySession[]> {
     billableHours: entry.billableHours ?? 0,
     totalPrice: entry.totalPrice ?? 0,
     bufferApplied: entry.bufferApplied ?? false,
+    paid: entry.paid ?? false,
+    paidAmount: entry.paidAmount ?? 0,
     createdBy: entry.createdBy ?? "unknown",
   }));
 }
 
-async function getNightSessions(db: Db): Promise<NightSession[]> {
+async function getTodayNightSessions(db: Db): Promise<NightSession[]> {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
   const entries = await db
     .collection("night_sessions")
-    .find({})
+    .find({
+      createdAt: {
+        $gte: today,
+        $lt: tomorrow,
+      },
+    })
     .sort({ createdAt: -1 })
-    .limit(100)
     .toArray();
 
   return entries.map((entry) => ({
@@ -84,6 +150,8 @@ async function getNightSessions(db: Db): Promise<NightSession[]> {
     vehicleNumber: entry.vehicleNumber,
     timestamp: entry.timestamp,
     price: entry.price ?? 0,
+    paid: entry.paid ?? false,
+    paidAmount: entry.paidAmount ?? 0,
     createdBy: entry.createdBy ?? "unknown",
   }));
 }
@@ -102,21 +170,19 @@ function calculateBillableHours(elapsedMinutes: number): number {
 
 export default async function ParkingSessionsPage() {
   const cookieStore = await cookies();
-  const role = cookieStore.get("role")?.value ?? "guest";
   const language = resolveLanguage(cookieStore.get("lang")?.value);
   const dict = getDictionary(language);
-  const canManage = role === "super-admin";
 
   const client = await clientPromise;
   const db = client.db();
   const [activeVehicles, hourly, night] = await Promise.all([
     getActiveHourlyVehicles(db),
-    getHourlySessions(db),
-    getNightSessions(db),
+    getTodayHourlySessions(db),
+    getTodayNightSessions(db),
   ]);
 
-  const hourlyTotal = hourly.reduce((sum, s) => sum + (s.totalPrice ?? 0), 0);
-  const nightTotal = night.reduce((sum, s) => sum + (s.price ?? 0), 0);
+  const hourlyTotal = hourly.reduce((sum, s) => sum + (s.paidAmount ?? 0), 0);
+  const nightTotal = night.reduce((sum, s) => sum + (s.paidAmount ?? 0), 0);
   const grandTotal = hourlyTotal + nightTotal;
 
   return (
@@ -220,9 +286,19 @@ export default async function ParkingSessionsPage() {
         </section>
 
         <section className="rounded-2xl border bg-background p-4 shadow-sm sm:p-6">
-          <h2 className="text-lg font-semibold text-foreground">
-            {dict.sessions.completedHourlySessions}
-          </h2>
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <div>
+              <h2 className="text-lg font-semibold text-foreground">
+                {dict.sessions.completedHourlySessions}
+              </h2>
+              <p className="text-xs text-muted-foreground mt-1">
+                Today's completed sessions
+              </p>
+            </div>
+            <Button asChild size="sm" variant="outline">
+              <Link href="/hourly-parking">View All Records</Link>
+            </Button>
+          </div>
           {hourly.length === 0 ? (
             <p className="mt-4 text-sm text-muted-foreground">
               {dict.sessions.noHourlySessions}
@@ -238,15 +314,19 @@ export default async function ParkingSessionsPage() {
                     <th className="px-3 py-2">{dict.sessions.tableHeaders.elapsed}</th>
                     <th className="px-3 py-2">{dict.sessions.tableHeaders.billed}</th>
                     <th className="px-3 py-2">{dict.sessions.tableHeaders.total}</th>
-                    <th className="px-3 py-2">{dict.sessions.tableHeaders.createdBy}</th>
-                    <th className="px-3 py-2">{dict.sessions.tableHeaders.actions}</th>
+                    <th className="px-3 py-2">Payment</th>
                   </tr>
                 </thead>
                 <tbody>
                   {hourly.map((session) => (
                     <tr key={session._id} className="border-t">
                       <td className="px-3 py-2 font-semibold text-foreground">
-                        {session.vehicleNumber}
+                        <Link
+                          href={`/hourly-parking/${session._id}`}
+                          className="text-primary hover:underline"
+                        >
+                          {session.vehicleNumber}
+                        </Link>
                       </td>
                       <td className="px-3 py-2 text-muted-foreground">
                         AED {session.hourlyRate?.toFixed(2) ?? "5.00"}/hr
@@ -262,16 +342,15 @@ export default async function ParkingSessionsPage() {
                         {session.bufferApplied ? " (+buf)" : ""}
                       </td>
                       <td className="px-3 py-2 text-muted-foreground">
-                        {session.totalPrice?.toFixed(2)}
-                      </td>
-                      <td className="px-3 py-2 text-muted-foreground">
-                        {session.createdBy}
+                        AED {session.totalPrice?.toFixed(2)}
                       </td>
                       <td className="px-3 py-2">
-                        <SessionActions
+                        <PaymentStatusWithButton
                           sessionType="hourly"
                           sessionId={session._id}
-                          canManage={canManage}
+                          totalAmount={session.totalPrice ?? 0}
+                          paidAmount={session.paidAmount ?? 0}
+                          paid={session.paid ?? false}
                         />
                       </td>
                     </tr>
@@ -283,9 +362,19 @@ export default async function ParkingSessionsPage() {
         </section>
 
         <section className="rounded-2xl border bg-background p-4 shadow-sm sm:p-6">
-          <h2 className="text-lg font-semibold text-foreground">
-            {dict.sessions.nightSessions}
-          </h2>
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <div>
+              <h2 className="text-lg font-semibold text-foreground">
+                {dict.sessions.nightSessions}
+              </h2>
+              <p className="text-xs text-muted-foreground mt-1">
+                Today's night parking sessions
+              </p>
+            </div>
+            <Button asChild size="sm" variant="outline">
+              <Link href="/night-parking">View All Records</Link>
+            </Button>
+          </div>
           {night.length === 0 ? (
             <p className="mt-4 text-sm text-muted-foreground">
               {dict.sessions.noNightSessions}
@@ -298,30 +387,33 @@ export default async function ParkingSessionsPage() {
                     <th className="px-3 py-2">{dict.sessions.tableHeaders.vehicle}</th>
                     <th className="px-3 py-2">{dict.sessions.tableHeaders.timestamp}</th>
                     <th className="px-3 py-2">{dict.sessions.tableHeaders.price}</th>
-                    <th className="px-3 py-2">{dict.sessions.tableHeaders.createdBy}</th>
-                    <th className="px-3 py-2">{dict.sessions.tableHeaders.actions}</th>
+                    <th className="px-3 py-2">Payment</th>
                   </tr>
                 </thead>
                 <tbody>
                   {night.map((session) => (
                     <tr key={session._id} className="border-t">
                       <td className="px-3 py-2 font-semibold text-foreground">
-                        {session.vehicleNumber}
+                        <Link
+                          href={`/night-parking/${session._id}`}
+                          className="text-primary hover:underline"
+                        >
+                          {session.vehicleNumber}
+                        </Link>
                       </td>
                       <td className="px-3 py-2 text-muted-foreground">
                         {new Date(session.timestamp).toLocaleString()}
                       </td>
                       <td className="px-3 py-2 text-muted-foreground">
-                        {session.price?.toFixed(2)}
-                      </td>
-                      <td className="px-3 py-2 text-muted-foreground">
-                        {session.createdBy}
+                        AED {session.price?.toFixed(2)}
                       </td>
                       <td className="px-3 py-2">
-                        <SessionActions
+                        <PaymentStatusWithButton
                           sessionType="night"
                           sessionId={session._id}
-                          canManage={canManage}
+                          totalAmount={session.price ?? 0}
+                          paidAmount={session.paidAmount ?? 0}
+                          paid={session.paid ?? false}
                         />
                       </td>
                     </tr>

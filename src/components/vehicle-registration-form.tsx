@@ -12,6 +12,7 @@ type FormState = {
   planType: string;
   price: string;
   notes: string;
+  paid: boolean;
 };
 
 const initialState: FormState = {
@@ -22,6 +23,7 @@ const initialState: FormState = {
   planType: "monthly",
   price: "",
   notes: "",
+  paid: false,
 };
 
 export function VehicleRegistrationForm() {
@@ -31,8 +33,12 @@ export function VehicleRegistrationForm() {
   const handleChange = (
     event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
   ) => {
-    const { name, value } = event.target;
-    setFormState((prev) => ({ ...prev, [name]: value }));
+    const { name, value, type } = event.target;
+    const checked = (event.target as HTMLInputElement).checked;
+    setFormState((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
   };
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -185,6 +191,28 @@ export function VehicleRegistrationForm() {
           placeholder="Any additional requirements or remarks..."
           className="w-full rounded-md border border-input bg-background px-3 py-2 text-base shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
+      </div>
+
+      <div className="flex items-center space-x-2 rounded-md border border-input bg-background p-3">
+        <input
+          id="paid"
+          name="paid"
+          type="checkbox"
+          checked={formState.paid}
+          onChange={handleChange}
+          className="h-4 w-4 rounded border-input text-primary focus:ring-2 focus:ring-ring"
+        />
+        <label
+          htmlFor="paid"
+          className="text-sm font-medium text-foreground cursor-pointer"
+        >
+          Payment received
+        </label>
+        <span className="text-xs text-muted-foreground ml-auto">
+          {formState.paid
+            ? "✓ Will be included in totals"
+            : "⚠ Not included in totals until paid"}
+        </span>
       </div>
 
       <Button type="submit" className="w-full" disabled={isPending}>
