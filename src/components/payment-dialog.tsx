@@ -94,22 +94,22 @@ export function PaymentDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Record Payment</DialogTitle>
-          <DialogDescription className="text-left space-y-2">
-            <div className="space-y-1 pt-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Total Amount:</span>
+          <DialogDescription asChild>
+            <div className="text-left space-y-1 pt-2 text-muted-foreground text-sm">
+              <div className="flex justify-between">
+                <span>Total Amount:</span>
                 <span className="font-semibold text-foreground">
                   AED {totalAmount.toFixed(2)}
                 </span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Already Paid:</span>
+              <div className="flex justify-between">
+                <span>Already Paid:</span>
                 <span className="font-medium text-foreground">
                   AED {paidAmount.toFixed(2)}
                 </span>
               </div>
-              <div className="flex justify-between text-sm border-t pt-2">
-                <span className="text-muted-foreground">Remaining:</span>
+              <div className="flex justify-between border-t pt-2">
+                <span>Remaining:</span>
                 <span className="font-semibold text-foreground">
                   AED {remainingAmount.toFixed(2)}
                 </span>
