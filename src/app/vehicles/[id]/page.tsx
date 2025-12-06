@@ -15,15 +15,8 @@ async function getVehicle(id: string) {
   const client = await clientPromise;
   const db = client.db();
 
-  let objectId: ObjectId | null = null;
-  try {
-    objectId = new ObjectId(id);
-  } catch {
-    objectId = null;
-  }
-
-  const query = objectId ? { _id: objectId } : { _id: id };
-  const vehicle = await db.collection("vehicles").findOne(query);
+  const query = { _id: new ObjectId(id) };
+  const vehicle = await db.collection("vehicles").findOne(query) as any;
 
   if (!vehicle) {
     return null;

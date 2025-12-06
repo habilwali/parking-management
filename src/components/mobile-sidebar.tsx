@@ -21,8 +21,9 @@ type MobileSidebarProps = {
   brand: string;
   language: "en" | "ps";
   languageLabels: {
-    current: string;
-    switch: string;
+    label: string;
+    english: string;
+    pashto: string;
   };
 };
 

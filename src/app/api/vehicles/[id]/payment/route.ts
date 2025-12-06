@@ -3,12 +3,8 @@ import { NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 import clientPromise from "@/lib/mongodb";
 
-function buildQuery(id: string) {
-  try {
-    return { _id: new ObjectId(id) };
-  } catch {
-    return { _id: id };
-  }
+function buildQuery(id: string): { _id: ObjectId } {
+  return { _id: new ObjectId(id) };
 }
 
 export async function POST(

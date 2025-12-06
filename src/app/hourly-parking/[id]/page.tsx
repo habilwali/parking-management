@@ -16,15 +16,8 @@ async function getHourlySession(id: string) {
   const client = await clientPromise;
   const db = client.db();
 
-  let objectId: ObjectId | null = null;
-  try {
-    objectId = new ObjectId(id);
-  } catch {
-    objectId = null;
-  }
-
-  const query = objectId ? { _id: objectId } : { _id: id };
-  const session = await db.collection("hourly_sessions").findOne(query);
+  const query = { _id: new ObjectId(id) };
+  const session = await db.collection("hourly_sessions").findOne(query) as any;
 
   if (!session) {
     return null;
