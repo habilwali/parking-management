@@ -190,32 +190,39 @@ export default async function NightParkingPage({
           </div>
         ) : (
           <>
-            <div className="overflow-x-auto rounded-2xl border bg-background">
+            <div 
+              className="overflow-x-auto rounded-2xl border bg-background -mx-4 sm:mx-0 px-4 sm:px-0" 
+              style={{ 
+                WebkitOverflowScrolling: 'touch',
+                touchAction: 'pan-x',
+                overflowX: 'auto',
+                overflowY: 'visible',
+                scrollbarWidth: 'thin'
+              }}
+            >
               <table className="w-full min-w-[700px] text-left text-xs sm:text-sm">
                 <thead className="bg-muted/50 text-2xs uppercase tracking-wide text-muted-foreground">
                   <tr>
                     <th className="px-3 py-2">Vehicle</th>
                     <th className="px-3 py-2">Timestamp</th>
-                    <th className="px-3 py-2">Price</th>
                     <th className="px-3 py-2">Payment</th>
+                    <th className="px-3 py-2">Price</th>
                   </tr>
                 </thead>
                 <tbody>
                   {sessions.map((session) => (
                     <tr key={session._id} className="border-t">
-                      <td className="px-3 py-2 font-semibold text-foreground">
+                      <td className="px-3 py-2">
                         <Link
                           href={`/night-parking/${session._id}`}
-                          className="text-primary hover:underline"
+                          className="text-blue-600 dark:text-blue-400 underline decoration-2 underline-offset-2 font-medium hover:text-blue-800 dark:hover:text-blue-300 active:text-blue-700 transition-colors cursor-pointer"
+                          style={{ textDecorationColor: 'rgb(37, 99, 235)', textDecorationThickness: '2px' }}
                         >
                           {session.vehicleNumber}
                         </Link>
                       </td>
                       <td className="px-3 py-2 text-muted-foreground">
                         {new Date(session.timestamp).toLocaleString()}
-                      </td>
-                      <td className="px-3 py-2 text-muted-foreground">
-                        AED {session.price?.toFixed(2)}
                       </td>
                       <td className="px-3 py-2">
                         <PaymentStatusWithButton
@@ -225,6 +232,9 @@ export default async function NightParkingPage({
                           paidAmount={session.paidAmount ?? 0}
                           paid={session.paid ?? false}
                         />
+                      </td>
+                      <td className="px-3 py-2 text-muted-foreground">
+                        AED {session.price?.toFixed(2)}
                       </td>
                     </tr>
                   ))}
