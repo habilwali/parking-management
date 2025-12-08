@@ -342,7 +342,12 @@ export default async function ParkingSessionsPage() {
                         {session.bufferApplied ? " (+buf)" : ""}
                       </td>
                       <td className="px-3 py-2 text-muted-foreground">
-                        AED {session.totalPrice?.toFixed(2)}
+                        <div className="space-y-0.5">
+                          <div>Total: AED {session.totalPrice?.toFixed(2)}</div>
+                          <div className="font-semibold text-foreground">
+                            Paid: AED {(session.paidAmount ?? 0).toFixed(2)}
+                          </div>
+                        </div>
                       </td>
                       <td className="px-3 py-2">
                         <PaymentStatusWithButton
@@ -405,7 +410,12 @@ export default async function ParkingSessionsPage() {
                         {new Date(session.timestamp).toLocaleString()}
                       </td>
                       <td className="px-3 py-2 text-muted-foreground">
-                        AED {session.price?.toFixed(2)}
+                        <div className="space-y-0.5">
+                          <div>Total: AED {session.price?.toFixed(2)}</div>
+                          <div className="font-semibold text-foreground">
+                            Paid: AED {(session.paidAmount ?? 0).toFixed(2)}
+                          </div>
+                        </div>
                       </td>
                       <td className="px-3 py-2">
                         <PaymentStatusWithButton

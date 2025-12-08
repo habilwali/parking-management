@@ -9,13 +9,20 @@ export function LogoutCard() {
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     startTransition(async () => {
-      const res = await fetch("/api/session", { method: "DELETE" });
-      const data = await res.json();
-      setMessage(data.message ?? "Signed out.");
-      if (res.ok) {
-        router.refresh();
+      try {
+        const res = await fetch("/api/session", { method: "DELETE" });
+        const data = await res.json();
+        
+        if (res.ok && data.success) {
+          // Redirect to login page immediately after successful logout
+          window.location.href = "/login";
+        } else {
+          setMessage(data.message ?? "Failed to sign out.");
+        }
+      } catch (error) {
+        setMessage("An error occurred. Please try again.");
       }
     });
   };

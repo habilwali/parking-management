@@ -35,33 +35,49 @@ export async function AppHeader() {
           {dictionary.header.brand}
         </Link>
         
-        {/* Mobile Sidebar - Only visible on mobile */}
-        <MobileSidebar
-          links={links}
-          brand={dictionary.header.brand}
-          language={language}
-          languageLabels={dictionary.header.language}
-        />
-        
-        {/* Desktop Navigation - Only visible on desktop */}
-        <nav className="ml-auto hidden sm:flex sm:items-center sm:gap-2">
-          {links.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="rounded-md px-3 py-2 text-sm font-medium text-foreground transition hover:bg-muted"
-            >
-              {link.label}
-            </Link>
-          ))}
-          <ThemeToggle />
-          <div className="ml-3 min-w-[150px]">
-            <LanguageToggle
-              currentLanguage={language}
-              labels={dictionary.header.language}
+        {/* Show navigation only when logged in */}
+        {isLoggedIn ? (
+          <>
+            {/* Mobile Sidebar - Only visible on mobile */}
+            <MobileSidebar
+              links={links}
+              brand={dictionary.header.brand}
+              language={language}
+              languageLabels={dictionary.header.language}
             />
+            
+            {/* Desktop Navigation - Only visible on desktop */}
+            <nav className="ml-auto hidden sm:flex sm:items-center sm:gap-2">
+              {links.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="rounded-md px-3 py-2 text-sm font-medium text-foreground transition hover:bg-muted"
+                >
+                  {link.label}
+                </Link>
+              ))}
+              <ThemeToggle />
+              <div className="ml-3 min-w-[150px]">
+                <LanguageToggle
+                  currentLanguage={language}
+                  labels={dictionary.header.language}
+                />
+              </div>
+            </nav>
+          </>
+        ) : (
+          /* Show only theme and language toggles when not logged in */
+          <div className="ml-auto flex items-center gap-2">
+            <ThemeToggle />
+            <div className="min-w-[150px]">
+              <LanguageToggle
+                currentLanguage={language}
+                labels={dictionary.header.language}
+              />
+            </div>
           </div>
-        </nav>
+        )}
       </div>
     </header>
   );

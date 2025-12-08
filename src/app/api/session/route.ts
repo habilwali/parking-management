@@ -52,18 +52,23 @@ export async function POST(request: Request) {
 
     const role = user.role === "super-admin" ? "super-admin" : "admin";
 
+    // 30 days expiration: 60 seconds * 60 minutes * 24 hours * 30 days
+    const THIRTY_DAYS = 60 * 60 * 24 * 30;
+
     cookieStore.set("role", role, {
       path: "/",
       httpOnly: true,
       sameSite: "lax",
-      maxAge: 60 * 60,
+      secure: process.env.NODE_ENV === "production",
+      maxAge: THIRTY_DAYS,
     });
 
     cookieStore.set("userEmail", user.email, {
       path: "/",
       httpOnly: true,
       sameSite: "lax",
-      maxAge: 60 * 60,
+      secure: process.env.NODE_ENV === "production",
+      maxAge: THIRTY_DAYS,
     });
 
     return NextResponse.json({

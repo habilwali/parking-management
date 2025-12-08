@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { RenewVehicleButton } from "@/components/renew-vehicle-button";
 import { VehiclePaymentButton } from "@/components/vehicle-payment-button";
 import { Pagination } from "@/components/pagination";
+import { VehicleSearch } from "@/components/vehicle-search";
+import { PaymentFilter } from "@/components/payment-filter";
 import { getDictionary, resolveLanguage } from "@/lib/i18n";
 
 function PaymentStatusCell({
@@ -70,48 +72,79 @@ async function getVehicles(
   monthEnd: Date,
   page: number = 1,
   pageSize: number = 10,
+  search?: string,
+  paymentFilter?: "paid" | "unpaid",
 ): Promise<{ vehicles: VehicleRecord[]; total: number }> {
   const skip = (page - 1) * pageSize;
 
-  // Include vehicles that were registered in the month OR expire in the month
-  const query = {
-    $or: [
-      {
-        registerDate: {
-          $gte: monthStart,
-          $lt: monthEnd,
+  // Base query: Include vehicles that were registered in the month OR expire in the month
+  const conditions: any[] = [
+    {
+      $or: [
+        {
+          registerDate: {
+            $gte: monthStart,
+            $lt: monthEnd,
+          },
         },
-      },
-      {
-        expiresAt: {
-          $gte: monthStart,
-          $lt: monthEnd,
+        {
+          expiresAt: {
+            $gte: monthStart,
+            $lt: monthEnd,
+          },
         },
+      ],
+    },
+  ];
+
+  // Add vehicle number search filter
+  if (search && search.trim()) {
+    conditions.push({
+      vehicleNumber: {
+        $regex: search.trim(),
+        $options: "i", // case-insensitive
       },
-    ],
-  };
+    });
+  }
+
+  // Add payment status filter
+  if (paymentFilter === "paid") {
+    conditions.push({
+      $expr: {
+        $gte: [{ $ifNull: ["$paidAmount", 0] }, "$price"],
+      },
+    });
+  } else if (paymentFilter === "unpaid") {
+    conditions.push({
+      $expr: {
+        $lt: [{ $ifNull: ["$paidAmount", 0] }, "$price"],
+      },
+    });
+  }
+
+  const baseQuery = conditions.length > 1 ? { $and: conditions } : conditions[0];
 
   const [vehicles, total] = await Promise.all([
     db
       .collection("vehicles")
-      .find(query)
+      .find(baseQuery)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(pageSize)
       .toArray(),
-    db.collection("vehicles").countDocuments(query),
+    db.collection("vehicles").countDocuments(baseQuery),
   ]);
 
   return {
     vehicles: vehicles.map((vehicle) => ({
       _id: vehicle._id.toString(),
-      name: vehicle.name,
-      vehicleNumber: vehicle.vehicleNumber,
-      phone: vehicle.phone,
-      registerDate: vehicle.registerDate,
-      expiresAt: vehicle.expiresAt,
-      planType: vehicle.planType,
-      price: vehicle.price,
+      name: vehicle.name ?? "",
+      vehicleNumber: vehicle.vehicleNumber ?? "",
+      phone: vehicle.phone ?? "",
+      registerDate: vehicle.registerDate ?? new Date(),
+      expiresAt: vehicle.expiresAt ?? new Date(),
+      planType: vehicle.planType ?? "",
+      price: vehicle.price ?? 0,
       paid: vehicle.paid ?? false,
       paidAmount: vehicle.paidAmount ?? 0,
       notes: vehicle.notes,
@@ -231,7 +264,12 @@ async function getNightSummary(
 export default async function Dashboard({
   searchParams,
 }: {
-  searchParams: Promise<{ month?: string | string[]; page?: string | string[] }>;
+  searchParams: Promise<{ 
+    month?: string | string[]; 
+    page?: string | string[];
+    search?: string | string[];
+    filter?: string | string[];
+  }>;
 }) {
   const cookieStore = await cookies();
   const role = cookieStore.get("role")?.value ?? "guest";
@@ -297,6 +335,27 @@ export default async function Dashboard({
   }
   const currentPage = Math.max(1, Number(pageParam) || 1);
 
+  // Extract search parameter
+  let searchParam: string | undefined;
+  const searchValue = params?.search;
+  if (searchValue) {
+    if (Array.isArray(searchValue)) {
+      searchParam = searchValue[0];
+    } else if (typeof searchValue === "string") {
+      searchParam = searchValue;
+    }
+  }
+
+  // Extract filter parameter
+  let filterParam: "paid" | "unpaid" | undefined;
+  const filterValue = params?.filter;
+  if (filterValue) {
+    const filterStr = Array.isArray(filterValue) ? filterValue[0] : filterValue;
+    if (filterStr === "paid" || filterStr === "unpaid") {
+      filterParam = filterStr;
+    }
+  }
+
   const monthOptions = Array.from({ length: 12 }).map((_, index) => {
     const optionDate = new Date(currentYear, currentMonth - index, 1);
     const value = `${optionDate.getFullYear()}-${(optionDate.getMonth() + 1)
@@ -311,7 +370,7 @@ export default async function Dashboard({
 
   const [vehiclesData, monthlyStats, hourlySummary, nightSummary] =
     await Promise.all([
-      getVehicles(db, monthStart, monthEnd, currentPage, pageSize),
+      getVehicles(db, monthStart, monthEnd, currentPage, pageSize, searchParam, filterParam),
       getMonthlyStats(db, monthStart, monthEnd),
       getHourlySummary(db, monthStart, monthEnd),
       getNightSummary(db, monthStart, monthEnd),
@@ -451,73 +510,115 @@ export default async function Dashboard({
           </div>
         </div>
 
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
+          <VehicleSearch 
+            baseUrl="/dashboard" 
+            preserveParams={monthParam ? ["month"] : []}
+          />
+          <PaymentFilter 
+            currentFilter={filterParam} 
+            baseUrl="/dashboard"
+            preserveParams={monthParam ? ["month"] : []}
+          />
+        </div>
+
         {vehicles.length === 0 ? (
           <div className="rounded-xl border border-dashed bg-background p-8 text-center text-sm text-muted-foreground">
             {dict.dashboard.noVehicles}
           </div>
         ) : (
-              <div className="overflow-x-auto rounded-2xl border bg-background">
+              <div 
+                className="overflow-x-auto rounded-2xl border bg-background -mx-4 sm:mx-0 px-4 sm:px-0" 
+                style={{ 
+                  WebkitOverflowScrolling: 'touch',
+                  touchAction: 'pan-x',
+                  overflowX: 'auto',
+                  overflowY: 'visible',
+                  scrollbarWidth: 'thin'
+                }}
+              >
                 <table className="w-full min-w-[600px] text-left text-xs sm:text-sm">
                   <thead className="bg-muted/50 text-2xs uppercase tracking-wide text-muted-foreground">
                 <tr>
                   <th className="px-3 py-3">{dict.dashboard.driver}</th>
                   <th className="px-3 py-3">{dict.dashboard.vehicle}</th>
-                  <th className="px-3 py-3">{dict.dashboard.plan}</th>
-                  <th className="px-3 py-3">{dict.dashboard.price}</th>
-                  <th className="px-3 py-3">Payment</th>
                   <th className="px-3 py-3">{dict.dashboard.registered}</th>
                   <th className="px-3 py-3">{dict.dashboard.expires}</th>
                   <th className="px-3 py-3">{dict.dashboard.status}</th>
-                      <th className="px-3 py-3">{dict.dashboard.details}</th>
+                  <th className="px-3 py-3">Payment</th>
+                  <th className="px-3 py-3 hidden sm:table-cell">{dict.dashboard.plan}</th>
+                  <th className="px-3 py-3 hidden md:table-cell">{dict.dashboard.price}</th>
+                      <th className="px-3 py-3 hidden md:table-cell">{dict.dashboard.details}</th>
                 </tr>
               </thead>
               <tbody>
-                {vehicles.map((vehicle) => (
+                {vehicles.map((vehicle) => {
+                  const registerDate = vehicle.registerDate ? new Date(vehicle.registerDate) : new Date();
+                  const expiresAt = vehicle.expiresAt ? new Date(vehicle.expiresAt) : new Date();
+                  const isExpired = expiresAt < new Date();
+                  
+                  return (
                   <tr key={vehicle._id} className="border-t">
                     <td className="px-3 py-3 font-semibold text-foreground">
-                      {vehicle.name}
-                    </td>
-                    <td className="px-3 py-3 text-muted-foreground">
-                      {vehicle.vehicleNumber}
-                    </td>
-                    <td className="px-3 py-3 text-muted-foreground">
-                      {vehicle.planType}
-                    </td>
-                    <td className="px-3 py-3 text-muted-foreground">
-                      AED&nbsp;
-                      {vehicle.price.toFixed(2)}
+                      {vehicle.name || "-"}
                     </td>
                     <td className="px-3 py-3">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <PaymentStatusCell
-                          totalAmount={vehicle.price}
-                          paidAmount={vehicle.paidAmount ?? 0}
-                          paid={vehicle.paid ?? false}
-                        />
-                        <VehiclePaymentButton
-                          vehicleId={vehicle._id}
-                          totalAmount={vehicle.price}
-                          paidAmount={vehicle.paidAmount ?? 0}
-                        />
-                      </div>
+                      <Link
+                        href={`/vehicles/${vehicle._id}`}
+                        className="text-blue-600 dark:text-blue-400 underline decoration-2 underline-offset-2 font-medium hover:text-blue-800 dark:hover:text-blue-300 active:text-blue-700 transition-colors cursor-pointer"
+                        style={{ textDecorationColor: 'rgb(37, 99, 235)', textDecorationThickness: '2px' }}
+                      >
+                        {vehicle.vehicleNumber || "-"}
+                      </Link>
+                    </td>
+                    <td className={`px-3 py-3 ${isExpired ? "text-red-600 dark:text-red-400" : "text-muted-foreground"}`}>
+                      {registerDate.toLocaleDateString()}
+                    </td>
+                    <td className={`px-3 py-3 ${isExpired ? "text-red-600 dark:text-red-400" : "text-muted-foreground"}`}>
+                      {expiresAt.toLocaleDateString()}
                     </td>
                     <td className="px-3 py-3 text-muted-foreground">
-                      {new Date(vehicle.registerDate).toLocaleDateString()}
-                    </td>
-                    <td className="px-3 py-3 text-muted-foreground">
-                      {new Date(vehicle.expiresAt).toLocaleDateString()}
-                    </td>
-                    <td className="px-3 py-3 text-muted-foreground">
-                      {new Date(vehicle.expiresAt) < new Date() ? (
+                      {isExpired ? (
                         <div className="flex items-center gap-2 text-red-500">
                           <span>{dict.dashboard.expired}</span>
-                          <RenewVehicleButton vehicleId={vehicle._id} />
+                          <RenewVehicleButton 
+                            vehicleId={vehicle._id}
+                            totalAmount={vehicle.price || 0}
+                            paidAmount={vehicle.paidAmount ?? 0}
+                          />
                         </div>
                       ) : (
                         <span className="text-emerald-600">{dict.dashboard.active}</span>
                       )}
                     </td>
-                        <td className="px-3 py-3">
+                    <td className="px-3 py-3">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <PaymentStatusCell
+                          totalAmount={vehicle.price || 0}
+                          paidAmount={vehicle.paidAmount ?? 0}
+                          paid={vehicle.paid ?? false}
+                        />
+                        <VehiclePaymentButton
+                          vehicleId={vehicle._id}
+                          totalAmount={vehicle.price || 0}
+                          paidAmount={vehicle.paidAmount ?? 0}
+                        />
+                        <Link
+                          href={`/vehicles/${vehicle._id}`}
+                          className="md:hidden text-xs font-medium text-primary underline underline-offset-2 hover:text-primary/80"
+                        >
+                          View
+                        </Link>
+                      </div>
+                    </td>
+                    <td className="px-3 py-3 text-muted-foreground hidden sm:table-cell">
+                      {vehicle.planType || "-"}
+                    </td>
+                    <td className="px-3 py-3 text-muted-foreground hidden md:table-cell">
+                      AED&nbsp;
+                      {(vehicle.price || 0).toFixed(2)}
+                    </td>
+                        <td className="px-3 py-3 hidden md:table-cell">
                           <Link
                             href={`/vehicles/${vehicle._id}`}
                             className="text-xs font-medium text-primary underline underline-offset-2"
@@ -526,7 +627,7 @@ export default async function Dashboard({
                           </Link>
                     </td>
                   </tr>
-                ))}
+                )})}
               </tbody>
             </table>
           </div>
@@ -540,6 +641,8 @@ export default async function Dashboard({
               baseUrl="/dashboard"
               searchParams={{
                 ...(monthParam ? { month: monthParam } : {}),
+                ...(searchParam ? { search: searchParam } : {}),
+                ...(filterParam ? { filter: filterParam } : {}),
                 ...(language === "ps" ? { lang: "ps" } : {}),
               }}
               showing={dict.dashboard.pagination.showing(

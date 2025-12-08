@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -23,12 +23,30 @@ export function Pagination({
   previousLabel,
   nextLabel,
 }: PaginationProps) {
+  const router = useRouter();
+  
   const buildUrl = (page: number) => {
     const params = new URLSearchParams({
       ...searchParams,
       page: page.toString(),
     });
     return `${baseUrl}?${params.toString()}`;
+  };
+
+  const handlePageChange = (page: number) => {
+    // Preserve scroll position
+    const scrollY = window.scrollY;
+    
+    const newUrl = buildUrl(page);
+    
+    // Use window.history to update URL without scrolling
+    window.history.pushState({}, "", newUrl);
+    router.refresh();
+    
+    // Restore scroll position after a brief delay
+    requestAnimationFrame(() => {
+      window.scrollTo(0, scrollY);
+    });
   };
 
   const prevPage = currentPage > 1 ? currentPage - 1 : null;
@@ -71,11 +89,14 @@ export function Pagination({
       {showNavigation && (
         <div className="flex items-center gap-2">
           {prevPage ? (
-            <Button asChild size="sm" variant="outline">
-              <Link href={buildUrl(prevPage)} className="flex items-center gap-1">
-                <ChevronLeft className="h-4 w-4" />
-                <span className="hidden sm:inline">{previousLabel}</span>
-              </Link>
+            <Button 
+              size="sm" 
+              variant="outline"
+              onClick={() => handlePageChange(prevPage)}
+              className="flex items-center gap-1"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              <span className="hidden sm:inline">{previousLabel}</span>
             </Button>
           ) : (
             <Button size="sm" variant="outline" disabled>
@@ -88,21 +109,24 @@ export function Pagination({
             {getPageNumbers().map((pageNum) => (
               <Button
                 key={pageNum}
-                asChild
                 size="sm"
                 variant={currentPage === pageNum ? "default" : "outline"}
+                onClick={() => handlePageChange(pageNum)}
               >
-                <Link href={buildUrl(pageNum)}>{pageNum}</Link>
+                {pageNum}
               </Button>
             ))}
           </div>
 
           {nextPage ? (
-            <Button asChild size="sm" variant="outline">
-              <Link href={buildUrl(nextPage)} className="flex items-center gap-1">
-                <span className="hidden sm:inline">{nextLabel}</span>
-                <ChevronRight className="h-4 w-4" />
-              </Link>
+            <Button 
+              size="sm" 
+              variant="outline"
+              onClick={() => handlePageChange(nextPage)}
+              className="flex items-center gap-1"
+            >
+              <span className="hidden sm:inline">{nextLabel}</span>
+              <ChevronRight className="h-4 w-4" />
             </Button>
           ) : (
             <Button size="sm" variant="outline" disabled>

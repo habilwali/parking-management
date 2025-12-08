@@ -152,6 +152,7 @@
   a,
   [role="button"] {
     touch-action: manipulation;
+    cursor: pointer;
   }
   
   /* Prevent form inputs from zooming on focus (iOS Safari) */

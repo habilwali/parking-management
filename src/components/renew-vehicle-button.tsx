@@ -1,38 +1,43 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { PaymentDialog } from "@/components/payment-dialog";
 
 type RenewVehicleButtonProps = {
   vehicleId: string;
+  totalAmount: number;
+  paidAmount: number;
 };
 
-export function RenewVehicleButton({ vehicleId }: RenewVehicleButtonProps) {
+export function RenewVehicleButton({ 
+  vehicleId, 
+  totalAmount, 
+  paidAmount 
+}: RenewVehicleButtonProps) {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
-
-  const handleRenew = () => {
-    startTransition(async () => {
-      const res = await fetch(`/api/vehicles/${vehicleId}/renew`, {
-        method: "POST",
-      });
-
-      if (res.ok) {
-        toast.success("Vehicle renewed successfully");
-        router.refresh();
-      } else {
-        const data = await res.json();
-        toast.error(data.message ?? "Failed to renew vehicle.");
-      }
-    });
-  };
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
 
   return (
-    <Button size="sm" onClick={handleRenew} disabled={isPending}>
-      {isPending ? "Renewing..." : "Renew"}
-    </Button>
+    <>
+      <Button 
+        size="sm" 
+        onClick={() => setShowPaymentDialog(true)}
+      >
+        Renew
+      </Button>
+      <PaymentDialog
+        open={showPaymentDialog}
+        onOpenChange={setShowPaymentDialog}
+        sessionType="monthly"
+        sessionId={vehicleId}
+        totalAmount={totalAmount}
+        paidAmount={0}
+        onPaymentSuccess={() => router.refresh()}
+        allowAnyAmount={true}
+      />
+    </>
   );
 }
 

@@ -69,7 +69,14 @@ export function SessionActions({
         throw new Error(data.message ?? "Failed to delete.");
       }
       toast.success("Session deleted successfully");
-      router.refresh();
+      // Redirect to appropriate list page instead of refreshing
+      if (sessionType === "hourly") {
+        router.push("/hourly-parking");
+      } else if (sessionType === "night") {
+        router.push("/night-parking");
+      } else {
+        router.refresh();
+      }
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Failed to delete session.",

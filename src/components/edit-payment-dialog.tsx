@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -12,37 +12,36 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
-type PaymentDialogProps = {
+type EditPaymentDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   sessionType: "hourly" | "night" | "monthly";
   sessionId: string;
   totalAmount: number;
-  paidAmount: number;
+  currentPaidAmount: number;
   onPaymentSuccess: () => void;
-  allowAnyAmount?: boolean; // For renewals, allow paying any amount
 };
 
-export function PaymentDialog({
+export function EditPaymentDialog({
   open,
   onOpenChange,
   sessionType,
   sessionId,
   totalAmount,
-  paidAmount,
+  currentPaidAmount,
   onPaymentSuccess,
-  allowAnyAmount = false,
-}: PaymentDialogProps) {
+}: EditPaymentDialogProps) {
   const [paymentAmount, setPaymentAmount] = useState("");
   const [isPending, setIsPending] = useState(false);
 
-  // For renewals, if expired, treat as starting fresh (paidAmount = 0)
-  const effectivePaidAmount = allowAnyAmount && paidAmount >= totalAmount ? 0 : paidAmount;
-  const remainingAmount = totalAmount - effectivePaidAmount;
-  const canPayFull = remainingAmount > 0;
-  const maxPaymentAmount = allowAnyAmount ? undefined : remainingAmount;
+  // Initialize with current paid amount when dialog opens
+  useEffect(() => {
+    if (open) {
+      setPaymentAmount(currentPaidAmount.toFixed(2));
+    }
+  }, [open, currentPaidAmount]);
 
-  const handlePayment = async () => {
+  const handleUpdate = async () => {
     const amount = Number(paymentAmount);
     
     if (!paymentAmount.trim()) {
@@ -50,70 +49,62 @@ export function PaymentDialog({
       return;
     }
     
-    if (Number.isNaN(amount) || amount <= 0) {
+    if (Number.isNaN(amount) || amount < 0) {
       toast.error("Please enter a valid payment amount");
       return;
     }
     
-    // Only check remaining amount limit if not allowing any amount (for renewals)
-    if (!allowAnyAmount && amount > remainingAmount) {
-      toast.error(`Payment amount cannot exceed remaining amount of AED ${remainingAmount.toFixed(2)}`);
+    // If the new amount is the same as current, no need to update
+    if (amount === currentPaidAmount) {
+      toast.info("No changes to update");
+      onOpenChange(false);
       return;
     }
 
     setIsPending(true);
     try {
-      // For renewals, use the combined renew-payment endpoint
-      const endpoint = allowAnyAmount && sessionType === "monthly"
-        ? `/api/vehicles/${sessionId}/renew-payment`
-        : sessionType === "monthly" 
+      const endpoint = sessionType === "monthly" 
         ? `/api/vehicles/${sessionId}/payment`
         : `/api/${sessionType}/${sessionId}/payment`;
+      
+      // Calculate the difference to add/subtract
+      const difference = amount - currentPaidAmount;
       
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount }),
+        body: JSON.stringify({ amount: difference }),
       });
       
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.message ?? "Failed to record payment.");
+        throw new Error(data.message ?? "Failed to update payment.");
       }
       
-      if (allowAnyAmount) {
-        toast.success(`Vehicle renewed and payment of AED ${amount.toFixed(2)} recorded successfully`);
-      } else {
-        toast.success(`Payment of AED ${amount.toFixed(2)} recorded successfully`);
-      }
+      toast.success(`Payment updated to AED ${amount.toFixed(2)} successfully`);
       setPaymentAmount("");
-      onPaymentSuccess();
       onOpenChange(false);
+      // Call onPaymentSuccess to refresh the page and update the table
+      // Use a small delay to ensure the database update is complete
+      setTimeout(() => {
+        onPaymentSuccess();
+      }, 200);
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Failed to record payment.",
+        error instanceof Error ? error.message : "Failed to update payment.",
       );
     } finally {
       setIsPending(false);
     }
   };
 
-  const handlePayFull = () => {
-    setPaymentAmount(remainingAmount.toFixed(2));
-  };
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{allowAnyAmount ? "Renewal Payment" : "Record Payment"}</DialogTitle>
+          <DialogTitle>Edit Payment</DialogTitle>
           <DialogDescription asChild>
             <div className="text-left space-y-1 pt-2 text-muted-foreground text-sm">
-              {allowAnyAmount && (
-                <p className="text-xs text-muted-foreground mb-2">
-                  For renewal, you can pay any amount. The remaining amount from the previous subscription will be kept separate.
-                </p>
-              )}
               <div className="flex justify-between">
                 <span>Total Amount:</span>
                 <span className="font-semibold text-foreground">
@@ -121,15 +112,15 @@ export function PaymentDialog({
                 </span>
               </div>
               <div className="flex justify-between">
-                <span>Already Paid:</span>
+                <span>Current Paid:</span>
                 <span className="font-medium text-foreground">
-                  AED {effectivePaidAmount.toFixed(2)}
+                  AED {currentPaidAmount.toFixed(2)}
                 </span>
               </div>
               <div className="flex justify-between border-t pt-2">
                 <span>Remaining:</span>
                 <span className="font-semibold text-foreground">
-                  AED {remainingAmount.toFixed(2)}
+                  AED {(totalAmount - currentPaidAmount).toFixed(2)}
                 </span>
               </div>
             </div>
@@ -139,43 +130,24 @@ export function PaymentDialog({
         <div className="space-y-4 py-4">
           <div className="space-y-2">
             <label
-              htmlFor="payment-amount"
+              htmlFor="edit-payment-amount"
               className="text-sm font-medium text-foreground"
             >
-              Payment Amount (AED)
+              New Paid Amount (AED)
             </label>
             <input
-              id="payment-amount"
+              id="edit-payment-amount"
               type="number"
               min="0"
               step="0.01"
-              max={maxPaymentAmount}
               value={paymentAmount}
               onChange={(e) => setPaymentAmount(e.target.value)}
               placeholder="0.00"
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-base shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
-            {allowAnyAmount ? (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setPaymentAmount(totalAmount.toFixed(2))}
-                className="w-full"
-              >
-                Pay Full Subscription (AED {totalAmount.toFixed(2)})
-              </Button>
-            ) : canPayFull ? (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handlePayFull}
-                className="w-full"
-              >
-                Pay Full Amount (AED {remainingAmount.toFixed(2)})
-              </Button>
-            ) : null}
+            <p className="text-xs text-muted-foreground">
+              Enter the total paid amount. The difference will be added or subtracted automatically.
+            </p>
           </div>
         </div>
 
@@ -192,14 +164,15 @@ export function PaymentDialog({
             Cancel
           </Button>
           <Button
-            onClick={handlePayment}
-            disabled={isPending || !paymentAmount || Number(paymentAmount) <= 0}
+            onClick={handleUpdate}
+            disabled={isPending || !paymentAmount || Number.isNaN(Number(paymentAmount)) || Number(paymentAmount) < 0}
             className="w-full sm:w-auto"
           >
-            {isPending ? "Processing..." : "Record Payment"}
+            {isPending ? "Updating..." : "Update Payment"}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
+

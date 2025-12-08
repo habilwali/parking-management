@@ -1,11 +1,17 @@
-import Link from "next/link";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { LogoutCard } from "@/components/auth/logout-card";
-import { Button } from "@/components/ui/button";
 import { getDictionary, resolveLanguage } from "@/lib/i18n";
 
 export default async function LogoutPage() {
   const cookieStore = await cookies();
+  const isLoggedIn = Boolean(cookieStore.get("userEmail")?.value);
+  
+  // If not logged in, redirect to login
+  if (!isLoggedIn) {
+    redirect("/login");
+  }
+
   const language = resolveLanguage(cookieStore.get("lang")?.value);
   const dict = getDictionary(language);
 
@@ -24,9 +30,6 @@ export default async function LogoutPage() {
           </p>
         </div>
         <LogoutCard />
-        <Button asChild variant="outline" className="w-full">
-          <Link href="/">{dict.logout.backToHome}</Link>
-        </Button>
       </div>
     </div>
   );

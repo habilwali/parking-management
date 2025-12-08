@@ -1,60 +1,50 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useSearchParams } from "next/navigation";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 
 export function LoginForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("from") ?? "/";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [isPending, setIsPending] = useState(false);
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    startTransition(async () => {
-      try {
-        const res = await fetch("/api/session", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }),
-        });
+    
+    if (isPending) return; // Prevent double submission
+    
+    setIsPending(true);
+    setMessage(null);
 
-        // Check if response has content before parsing
-        const contentType = res.headers.get("content-type");
-        if (!contentType || !contentType.includes("application/json")) {
-          setMessage("Invalid response from server.");
-          return;
-        }
+    try {
+      const res = await fetch("/api/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
-        // Check if response has body
-        const text = await res.text();
-        if (!text) {
-          setMessage("Empty response from server.");
-          return;
-        }
+      const data = await res.json().catch(() => ({
+        success: false,
+        message: "Failed to parse server response.",
+      }));
 
-        let data;
-        try {
-          data = JSON.parse(text);
-        } catch {
-          setMessage("Failed to parse server response.");
-          return;
-        }
-
-        setMessage(data.message ?? "Signed in.");
-        if (res.ok) {
-          router.push(redirectTo);
-          router.refresh();
-        }
-      } catch {
-        setMessage("An error occurred. Please try again.");
+      if (res.ok && data.success) {
+        // Use window.location for clean redirect without refresh
+        // This works better on both mobile and desktop
+        window.location.href = redirectTo;
+      } else {
+        setMessage(data.message || "Invalid credentials. Please try again.");
+        setIsPending(false);
       }
-    });
+    } catch (error) {
+      setMessage("An error occurred. Please try again.");
+      setIsPending(false);
+    }
   };
 
   return (

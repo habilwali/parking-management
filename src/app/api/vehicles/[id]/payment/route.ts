@@ -25,7 +25,7 @@ export async function POST(
   const body = await request.json();
   const { amount } = body;
 
-  if (typeof amount !== "number" || amount <= 0) {
+  if (typeof amount !== "number") {
     return NextResponse.json(
       { success: false, message: "Invalid payment amount." },
       { status: 400 },
@@ -48,7 +48,7 @@ export async function POST(
 
     const currentPaidAmount = vehicle.paidAmount ?? 0;
     const totalPrice = vehicle.price ?? 0;
-    const newPaidAmount = currentPaidAmount + amount;
+    const newPaidAmount = Math.max(0, currentPaidAmount + amount);
     const isFullyPaid = newPaidAmount >= totalPrice;
 
     // Update vehicle with new paid amount

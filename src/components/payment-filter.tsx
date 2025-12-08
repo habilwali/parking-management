@@ -7,9 +7,10 @@ import Link from "next/link";
 type PaymentFilterProps = {
   currentFilter?: "paid" | "unpaid";
   baseUrl: string;
+  preserveParams?: string[]; // Array of param keys to preserve
 };
 
-export function PaymentFilter({ currentFilter, baseUrl }: PaymentFilterProps) {
+export function PaymentFilter({ currentFilter, baseUrl, preserveParams = [] }: PaymentFilterProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -22,13 +23,32 @@ export function PaymentFilter({ currentFilter, baseUrl }: PaymentFilterProps) {
     if (search) {
       params.set("search", search);
     }
+    // Preserve additional params (e.g., month)
+    preserveParams.forEach((key) => {
+      const value = searchParams.get(key);
+      if (value) {
+        params.set(key, value);
+      }
+    });
     const queryString = params.toString();
     return `${baseUrl}${queryString ? `?${queryString}` : ""}`;
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
-    router.push(getUrlWithSearch(value));
+    // Preserve scroll position
+    const scrollY = window.scrollY;
+    
+    const newUrl = getUrlWithSearch(value);
+    
+    // Use window.history to update URL without scrolling
+    window.history.pushState({}, "", newUrl);
+    router.refresh();
+    
+    // Restore scroll position after a brief delay
+    requestAnimationFrame(() => {
+      window.scrollTo(0, scrollY);
+    });
   };
 
   return (

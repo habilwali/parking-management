@@ -8,6 +8,7 @@ import { useState, useEffect } from "react";
 
 type VehicleSearchProps = {
   baseUrl: string;
+  preserveParams?: string[]; // Array of param keys to preserve
 };
 
 // Custom debounce hook
@@ -27,7 +28,7 @@ function useDebounce<T>(value: T, delay: number): T {
   return debouncedValue;
 }
 
-export function VehicleSearch({ baseUrl }: VehicleSearchProps) {
+export function VehicleSearch({ baseUrl, preserveParams = [] }: VehicleSearchProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [searchValue, setSearchValue] = useState(searchParams.get("search") || "");
@@ -43,6 +44,9 @@ export function VehicleSearch({ baseUrl }: VehicleSearchProps) {
       return;
     }
     
+    // Preserve scroll position
+    const scrollY = window.scrollY;
+    
     const params = new URLSearchParams();
     
     if (trimmedDebounced) {
@@ -55,6 +59,14 @@ export function VehicleSearch({ baseUrl }: VehicleSearchProps) {
       params.set("filter", filter);
     }
     
+    // Preserve additional params (e.g., month)
+    preserveParams.forEach((key) => {
+      const value = searchParams.get(key);
+      if (value) {
+        params.set(key, value);
+      }
+    });
+    
     // Reset to page 1 when searching
     if (trimmedDebounced) {
       params.set("page", "1");
@@ -66,8 +78,17 @@ export function VehicleSearch({ baseUrl }: VehicleSearchProps) {
     }
     
     const queryString = params.toString();
-    router.push(`${baseUrl}${queryString ? `?${queryString}` : ""}`);
-  }, [debouncedSearch, baseUrl, router, searchParams]);
+    const newUrl = `${baseUrl}${queryString ? `?${queryString}` : ""}`;
+    
+    // Use window.history to update URL without scrolling
+    window.history.pushState({}, "", newUrl);
+    router.refresh();
+    
+    // Restore scroll position after a brief delay
+    requestAnimationFrame(() => {
+      window.scrollTo(0, scrollY);
+    });
+  }, [debouncedSearch, baseUrl, router, searchParams, preserveParams]);
 
   // Sync with URL params when they change externally (e.g., from browser back button)
   useEffect(() => {
@@ -82,6 +103,9 @@ export function VehicleSearch({ baseUrl }: VehicleSearchProps) {
 
   const handleClear = () => {
     setSearchValue("");
+    // Preserve scroll position
+    const scrollY = window.scrollY;
+    
     const params = new URLSearchParams();
     // Preserve filter if exists
     const filter = searchParams.get("filter");
@@ -89,13 +113,39 @@ export function VehicleSearch({ baseUrl }: VehicleSearchProps) {
       params.set("filter", filter);
     }
     
+    // Preserve additional params (e.g., month)
+    preserveParams.forEach((key) => {
+      const value = searchParams.get(key);
+      if (value) {
+        params.set(key, value);
+      }
+    });
+    
     const queryString = params.toString();
-    router.push(`${baseUrl}${queryString ? `?${queryString}` : ""}`);
+    const newUrl = `${baseUrl}${queryString ? `?${queryString}` : ""}`;
+    
+    // Use window.history to update URL without scrolling
+    window.history.pushState({}, "", newUrl);
+    router.refresh();
+    
+    // Restore scroll position
+    requestAnimationFrame(() => {
+      window.scrollTo(0, scrollY);
+    });
   };
 
   const handleRefresh = () => {
     setSearchValue("");
-    router.push(baseUrl);
+    // Preserve scroll position
+    const scrollY = window.scrollY;
+    
+    window.history.pushState({}, "", baseUrl);
+    router.refresh();
+    
+    // Restore scroll position
+    requestAnimationFrame(() => {
+      window.scrollTo(0, scrollY);
+    });
   };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
