@@ -64,33 +64,29 @@ export default async function VehicleDetailPage({
   };
 
   // Create WhatsApp message
-  const createWhatsAppMessage = (vehicleName: string, vehicleNumber: string, expiresAt: string, isExpired: boolean): string => {
-    const greeting = "Assalamu Alaikum / Hello";
-    const status = isExpired 
-      ? "has expired" 
-      : "is approaching its expiry date";
-    const urgency = isExpired 
-      ? "We kindly request you to renew your parking subscription as soon as possible to avoid any service interruption." 
-      : "We kindly remind you to renew your parking subscription on time to ensure uninterrupted service.";
-    
-    return `${greeting},
+  const createWhatsAppMessage = (
+    vehicleName: string,
+    vehicleNumber: string,
+    expiresAt: string,
+    isExpired: boolean
+  ): string => {
+    if (isExpired) {
+      return `Dear ${vehicleName || "Customer"},
 
-This is a reminder regarding your monthly car parking subscription.
+Your monthly parking subscription for vehicle ${vehicleNumber || "N/A"} expired on ${expiresAt}.
 
-📋 Vehicle Information:
-• Owner Name: ${vehicleName}
-• Vehicle Number: ${vehicleNumber}
-• Subscription Expiry Date: ${expiresAt}
+Please renew it as soon as possible to avoid service interruption.
 
-⚠️ Important Notice:
-Your monthly parking subscription ${status}. ${urgency}
+Thank you.`;
+    } else {
+      return `Dear ${vehicleName || "Customer"},
 
-💡 To renew your subscription, please visit our parking.
+Your monthly parking subscription for vehicle ${vehicleNumber || "N/A"} expires on ${expiresAt}.
 
-Thank you for your continued patronage and cooperation.
+Please renew it before the expiry date to ensure uninterrupted service.
 
-Best regards,
-Parking Management Team`;
+Thank you.`;
+    }
   };
 
   // Generate WhatsApp URL
